@@ -9,6 +9,6 @@
       "projectName": "simpleonlinestore",
       "args": "",
       "envFile": "${workspaceFolder}/.env"
-    }
+    },
   ]
 }
