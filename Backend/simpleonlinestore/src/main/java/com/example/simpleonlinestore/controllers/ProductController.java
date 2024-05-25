@@ -19,12 +19,12 @@ public class ProductController {
     this.productRepository = productRepository;
   }
 
-  @GetMapping("/products")
+  @GetMapping("/v1/products")
   public Iterable<Product> findAllProducts() {
       return this.productRepository.findAll();
   }
 
-  @PostMapping("/products")
+  @PostMapping("/v1/products")
   public Product postProduct(@RequestBody Product product) {
       return this.productRepository.save(product);
   }

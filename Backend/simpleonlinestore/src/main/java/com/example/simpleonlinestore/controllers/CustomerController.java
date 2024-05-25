@@ -19,12 +19,12 @@ public class CustomerController {
     this.customerRepository = customerRepository;
   }
 
-  @GetMapping("/customers")
+  @GetMapping("/v1/customers")
   public Iterable<Customer> findAllCustomers() {
       return this.customerRepository.findAll();
   }
 
-  @PostMapping("/customers")
+  @PostMapping("/v1/customers")
   public Customer postCustomer(@RequestBody Customer customer) {
       return this.customerRepository.save(customer);
   }
