@@ -1,5 +1,7 @@
 package com.example.simpleonlinestore.controllers;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,17 +9,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.simpleonlinestore.database.users.User;
 import com.example.simpleonlinestore.database.users.UserRepository;
+import com.example.simpleonlinestore.security.JwtService;
 import com.example.simpleonlinestore.security.UserRole;
 
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 
 @RestController
@@ -29,12 +32,11 @@ public class UserController {
   @Autowired
   private UserRepository userRepository;
 
-  // allows access to spring's encoders
-  private final PasswordEncoder passwordEncoder;
+  @Autowired
+  private JwtService jwtService;
 
-  public UserController() {
-    passwordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder();
-  }
+  @Autowired
+  private PasswordEncoder passwordEncoder;
 
   // simple record for login info
   public record LoginRequest(String login, String password) {}
@@ -43,15 +45,22 @@ public class UserController {
   private static Pattern emailRegex = Pattern.compile("(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])");
 
   /**
-   * Simple signin route to authenticate users
-   * @param loginRequest record of singin infomation (email, password)
+   * Simple signin route to authenticate users. Using Authorization header to pass thru login info as it is needed by loginFilter (needed to get here)
+   *  and would be redundant to pass login info in both header and body
+   * @param authHeader with basic auth deatails password and email
    * @return ResponseEntity with status code
    */
   @PostMapping("/v1/auth/signin")
-  public ResponseEntity<String> signin(@RequestBody LoginRequest loginRequest) {
+  public ResponseEntity<String> signin(@RequestHeader("Authorization") String authHeader) {
+    String base64Credentials = authHeader.substring("Basic".length()).trim();
+    byte[] credDecoded = Base64.getDecoder().decode(base64Credentials);
+    String credentials = new String(credDecoded, StandardCharsets.UTF_8);
+    String[] values = credentials.split(":", 2);
+    LoginRequest loginRequest = new LoginRequest(values[0], values[1]);
+
     Authentication authentication = new UsernamePasswordAuthenticationToken(loginRequest.login(), loginRequest.password(), userRepository.findByLogin(loginRequest.login()).getAuthorities());
     if (authentication.isAuthenticated()) {
-      return ResponseEntity.ok("signed in"); 
+      return ResponseEntity.ok(jwtService.generateToken(loginRequest.login())); 
     } else {
       return ResponseEntity.badRequest().build();
     }
