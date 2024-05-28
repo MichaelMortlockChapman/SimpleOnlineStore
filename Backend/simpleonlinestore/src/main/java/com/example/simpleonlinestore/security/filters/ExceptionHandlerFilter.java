@@ -3,12 +3,13 @@ package com.example.simpleonlinestore.security.filters;
 import java.io.IOException;
 
 import org.springframework.http.HttpStatusCode;
-import org.springframework.http.ProblemDetail;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.nimbusds.jose.shaded.gson.JsonObject;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -32,9 +33,11 @@ public class ExceptionHandlerFilter extends OncePerRequestFilter {
   }
   
   public void setErrorResponse(HttpStatusCode status, String errorMessage, HttpServletResponse response){
-    ProblemDetail errorDetail = ProblemDetail.forStatusAndDetail(status, errorMessage);
+    JsonObject jsonError = new JsonObject();
+		jsonError.addProperty("status", status.value());
+		jsonError.addProperty("error", errorMessage);
     try {
-      response.getWriter().write(errorDetail.toString());
+      response.getWriter().write(jsonError.toString());
       response.setStatus(status.value());
     } catch (IOException e) {
         e.printStackTrace();

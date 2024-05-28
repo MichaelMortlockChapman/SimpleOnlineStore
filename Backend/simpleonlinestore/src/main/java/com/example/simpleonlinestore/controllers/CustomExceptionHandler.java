@@ -7,6 +7,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class CustomExceptionHandler {
@@ -25,6 +26,9 @@ public class CustomExceptionHandler {
     } else if (ex instanceof AccessDeniedException) {
       errorDetail = ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(403), ex.getMessage());
       errorDetail.setProperty("error", "Forbidden");
+    } else if (ex instanceof NoResourceFoundException) {
+      errorDetail = ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(404), ex.getMessage());
+      errorDetail.setProperty("error", "Undefined route");
     } else {
       errorDetail = ProblemDetail.forStatus(HttpStatusCode.valueOf(500));
       errorDetail.setProperty("error", ex.getMessage());
