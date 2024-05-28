@@ -4,7 +4,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -12,12 +11,15 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
-import static org.springframework.security.config.Customizer.withDefaults;
+import com.example.simpleonlinestore.security.filters.ExceptionHandlerFilter;
+import com.example.simpleonlinestore.security.filters.logins.LoginAuthenticationFilter;
+import com.example.simpleonlinestore.security.filters.tokens.TokenAuthenticationFilter;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 
 
 @Configuration
@@ -34,9 +36,33 @@ public class SecurityConfig {
   @Autowired
   private LoginAuthenticationFilter loginAuthenticationFilter;
 
+  @Autowired
+  private ExceptionHandlerFilter exceptionHandlerFilter;
+
   @Bean
   PasswordEncoder passwordEncoder() {
       return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+  }
+
+  // need to disable registration of filters otherwise auto added to filter chains
+  @Bean
+  FilterRegistrationBean<LoginAuthenticationFilter> registrationLoginFilter(LoginAuthenticationFilter filter) {
+    FilterRegistrationBean<LoginAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+    registration.setEnabled(false);
+    return registration;
+  }
+  @Bean
+  FilterRegistrationBean<TokenAuthenticationFilter> registrationTokenFilter(TokenAuthenticationFilter filter) {
+    FilterRegistrationBean<TokenAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+    registration.setEnabled(false);
+    return registration;
+  }
+
+  @Bean
+  FilterRegistrationBean<ExceptionHandlerFilter> registrationExceptionFilter(ExceptionHandlerFilter filter) {
+    FilterRegistrationBean<ExceptionHandlerFilter> registration = new FilterRegistrationBean<>(filter);
+    registration.setEnabled(false);
+    return registration;
   }
 
   // custom filter for auth routes to permit them without authorization (also without cors and csrf )
@@ -62,8 +88,8 @@ public class SecurityConfig {
             // .cors(cors -> cors.disable())
             .csrf(csrf -> csrf.disable())
             .addFilterBefore(loginAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(exceptionHandlerFilter, LoginAuthenticationFilter.class)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .exceptionHandling(exp -> exp.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))) //need to config correctly atm just sends 401 
             .build();
   }
 
@@ -71,12 +97,12 @@ public class SecurityConfig {
   @Order(2)
   SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     return http
-        .authorizeHttpRequests((requests) -> requests.anyRequest().authenticated())
+        .authorizeHttpRequests((requests) -> requests.requestMatchers(new AntPathRequestMatcher("/v1/auth/**")).permitAll().anyRequest().authenticated())
         // .cors(cors -> cors.disable())
         // .csrf(csrf -> csrf.disable())
         .addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+        .addFilterBefore(exceptionHandlerFilter, TokenAuthenticationFilter.class)
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .exceptionHandling(exp -> exp.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))) //need to config correctly atm just sends 401 
         .build();
   }
 }

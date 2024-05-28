@@ -1,4 +1,4 @@
-package com.example.simpleonlinestore.security;
+package com.example.simpleonlinestore.security.filters.logins;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -7,8 +7,10 @@ import java.util.Base64;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.lang.NonNull;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,12 +28,14 @@ public class LoginAuthenticationFilter extends OncePerRequestFilter {
   @Value("${backend.secret}")
   private String secret;
 
+  // need lazy or otherwise a circular dependency occurs
   @Lazy
   @Autowired
   private AuthenticationManager authenticationManager;
 
+  // filter for login details, authenticates if valid
   @Override
-  protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+  protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
       throws ServletException, IOException {
     // help from https://stackoverflow.com/questions/16000517/how-to-get-password-from-http-basic-authentication
     String authHeader = request.getHeader("Authorization");
@@ -45,8 +49,10 @@ public class LoginAuthenticationFilter extends OncePerRequestFilter {
       UsernamePasswordAuthenticationToken loginAuthToken = new UsernamePasswordAuthenticationToken(values[0], values[1]);
       Authentication auth = authenticationManager.authenticate(loginAuthToken);
       sc.setAuthentication(auth);
+      filterChain.doFilter(request, response);
+      return;
     }
 
-    filterChain.doFilter(request, response);
+    throw new BadCredentialsException("Missing login details"); 
   }
 }

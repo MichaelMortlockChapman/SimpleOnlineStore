@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.simpleonlinestore.security.UserRole;
 
-
+// simple testing routes controller 
 @RestController
 public class HelloController {
   private String welcomeSalutation = "Hello";

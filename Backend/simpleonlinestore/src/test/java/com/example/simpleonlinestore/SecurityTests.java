@@ -44,7 +44,7 @@ public class SecurityTests {
       )
       .andExpect(
         status()
-          .is4xxClientError()
+          .is(401)
       );
   }
   
@@ -63,18 +63,18 @@ public class SecurityTests {
   @Test
   void loginDosnotWorkForNonSigninRoutes() throws Exception {
     this.mockMvc
-      .perform(post("/v1/hello/user") .header("Authorization", base64Login))
-      .andExpect(status().is(403));
+      .perform(get("/v1/hello/user") .header("Authorization", base64Login))
+      .andExpect(status().is(401));
   }
 
   @Test
-  void singinReturnsTokenWithValidAuthorities() throws Exception {
+  void singinReturnsTokenWithInvalidAuthorities() throws Exception {
     MvcResult res = this.mockMvc
       .perform(post("/v1/auth/signin") .header("Authorization", base64Login))
       .andReturn();
 
     this.mockMvc
         .perform(get("/v1/hello/admin").header("Authorization", "Bearer " + res.getResponse().getContentAsString()))
-        .andExpect(status().is4xxClientError());
+        .andExpect(status().is(403));
   }
 }

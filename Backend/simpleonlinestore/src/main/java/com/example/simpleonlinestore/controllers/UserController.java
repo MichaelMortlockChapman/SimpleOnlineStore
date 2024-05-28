@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.simpleonlinestore.database.users.User;
 import com.example.simpleonlinestore.database.users.UserRepository;
-import com.example.simpleonlinestore.security.JwtService;
 import com.example.simpleonlinestore.security.UserRole;
+import com.example.simpleonlinestore.security.filters.tokens.JwtService;
 
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

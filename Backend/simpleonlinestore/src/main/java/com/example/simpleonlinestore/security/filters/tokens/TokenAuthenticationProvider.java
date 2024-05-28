@@ -1,11 +1,12 @@
-package com.example.simpleonlinestore.security;
+package com.example.simpleonlinestore.security.filters.tokens;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.authentication.BadCredentialsException;
+// import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.server.resource.authentication.BearerTokenAuthenticationToken;
 import org.springframework.stereotype.Service;
 
@@ -31,8 +32,8 @@ public class TokenAuthenticationProvider implements AuthenticationProvider {
       UserDetails user = userRepository.findByLogin(login);
       return new CustomTokenAuthentication(login, token, user.getAuthorities());
     }
-    authentication.setAuthenticated(false);
-    return authentication;
+
+    throw new BadJwtException("Bad token");
   }
 
   @Override

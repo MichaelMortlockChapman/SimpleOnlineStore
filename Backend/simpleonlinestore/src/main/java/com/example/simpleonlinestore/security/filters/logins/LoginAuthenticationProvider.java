@@ -1,4 +1,4 @@
-package com.example.simpleonlinestore.security;
+package com.example.simpleonlinestore.security.filters.logins;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,8 +37,8 @@ public class LoginAuthenticationProvider implements AuthenticationProvider {
     if (userDetails != null && passwordEncoder.matches(password + secret, userDetails.getPassword())) {
       return new UsernamePasswordAuthenticationToken(authentication.getPrincipal(), password + secret, userDetails.getAuthorities());
     }
-    authentication.setAuthenticated(false);
-    return authentication;
+
+    throw new BadCredentialsException("Invalid login");
   }
 
   @Override
