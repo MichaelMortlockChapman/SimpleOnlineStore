@@ -151,4 +151,26 @@ public class UserController {
     return ResponseEntity.ok("Done");
   }
   
+  /**
+   * removes all sessions of user from repository and sends back invalidated cookie (max age = 0) 
+   *  so client deletes it
+   * @param request
+   * @param response
+   * @param loginCookieValue value of login
+   * @param authCookieValue value of token cookie
+   * @return
+   */
+  @PostMapping("/v1/auth/signout/all")
+  public ResponseEntity<String> signoutAll(HttpServletRequest request, HttpServletResponse response,
+    @CookieValue(CookieGenerator.COOKIE_LOGIN) String loginCookieValue, 
+    @CookieValue(CookieGenerator.COOKE_NAME) String authCookieValue
+  ) {
+    SecurityContextHolder.clearContext();
+
+    response.addCookie(cookieGenerator.invalidateCookie(loginCookieValue));
+    sessionRepository.deleteById(authCookieValue);
+    sessionRepository.deleteAllUserSessions(loginCookieValue);
+
+    return ResponseEntity.ok("Done");
+  }
 }

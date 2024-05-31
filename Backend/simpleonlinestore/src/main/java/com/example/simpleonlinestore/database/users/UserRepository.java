@@ -4,11 +4,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import com.example.simpleonlinestore.database.sessions.SessionRepository;
+
 @Service
 public class UserRepository {
 
   @Autowired
   private UserCrudRepository userRepo;
+
+  @Autowired
+  private SessionRepository sessionRepository;
 
   public UserDetails findByLogin(String login) {
     for (User user : userRepo.findAll()) {
@@ -22,8 +27,13 @@ public class UserRepository {
   public User save(User user) {
     return userRepo.save(user);
   }
+
+  public void updateAssociations(User user) {
+    sessionRepository.deleteAllUserSessions(user.getLogin());
+  }
   
   public void deleteById(User user) {
+    updateAssociations(user);
     userRepo.deleteById(user.getId());
   }
 
