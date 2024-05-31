@@ -26,10 +26,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
-
 
 @RestController
 public class UserController {
@@ -81,13 +81,14 @@ public class UserController {
   }  
   
   /**
-   * Simple signup route to create users 
-   *  returns BAD_REQUEST status if email already in use, email is invalid, and or password in less than 8 chars
+   * Simple signup route to create users, sends back session cookie back on valid signup.
+   *  Returns BAD_REQUEST status if email already in use, email is invalid, and or password in less than 8 chars
+   * @param response
    * @param loginRequest record of signup infomation (email, password)
    * @return ResponseEntity with status code
    */
   @PostMapping("/v1/auth/signup")
-  public ResponseEntity<String> signup(@RequestBody LoginRequest loginRequest) {
+  public ResponseEntity<String> signup(HttpServletResponse response, @RequestBody LoginRequest loginRequest) {
     if (userRepository.findByLogin(loginRequest.login()) != null) {
       return new ResponseEntity<String>("Login already in use", HttpStatus.BAD_REQUEST);
     } else if (!emailRegex.matcher(loginRequest.login()).find()) {
@@ -98,13 +99,50 @@ public class UserController {
 
     String encodedPassword = passwordEncoder.encode(loginRequest.password + secret);
     userRepository.save(new User(loginRequest.login, encodedPassword, UserRole.ROLE_USER));
+
+    Cookie c = cookieGenerator.generateToken(loginRequest.login());
+    sessionRepository.save(new Session(c.getValue(), loginRequest.login()));
+    response.addCookie(c);
+
     return new ResponseEntity<String>("User signed up", HttpStatus.CREATED);
   }
+
+  /**
+   * delete user function, removes session and user from repositorys and sends back invalidated cookie (max age = 0) 
+   *  so client deletes it
+   * @param response
+   * @param loginCookieValue value of login
+   * @param authCookieValue value of token cookie
+   * @return
+   */
+  @DeleteMapping("/v1/auth/delete")
+  public ResponseEntity<String> deleteUser(HttpServletResponse response, 
+    @CookieValue(CookieGenerator.COOKIE_LOGIN) String loginCookieValue,
+    @CookieValue(CookieGenerator.COOKE_NAME) String authCookieValue
+  ) {
+
+    response.addCookie(cookieGenerator.invalidateCookie(loginCookieValue));
+    sessionRepository.deleteById(authCookieValue);
+    
+    userRepository.deleteByLogin(loginCookieValue);
+
+    return ResponseEntity.ok("Done");
+  }
   
+  /**
+   * signout function, removes session from repository and sends back invalidated cookie (max age = 0) 
+   *  so client deletes it
+   * @param request
+   * @param response
+   * @param loginCookieValue value of login
+   * @param authCookieValue value of token cookie
+   * @return
+   */
   @PostMapping("/v1/auth/signout")
-  public ResponseEntity<String> postMethodName(HttpServletRequest request, HttpServletResponse response,
-      @CookieValue(CookieGenerator.COOKIE_LOGIN) String loginCookieValue, 
-      @CookieValue(CookieGenerator.COOKE_NAME) String authCookieValue) {
+  public ResponseEntity<String> signout(HttpServletRequest request, HttpServletResponse response,
+    @CookieValue(CookieGenerator.COOKIE_LOGIN) String loginCookieValue, 
+    @CookieValue(CookieGenerator.COOKE_NAME) String authCookieValue
+  ) {
     SecurityContextHolder.clearContext();
 
     response.addCookie(cookieGenerator.invalidateCookie(loginCookieValue));

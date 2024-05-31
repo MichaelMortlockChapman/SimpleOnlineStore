@@ -3,3 +3,11 @@ curl -i --user password@password.org:password -X POST http://localhost:8081/v1/a
 curl http://localhost:8081/v1/hello/user -H "Cookie: auth_cookie=1719724348102:cb754118-b3f4-41b1-95cf-caa13442629b; Max-Age=2629746; Expires=Sun, 30 Jun 2024 15:40:27 GMT; Secure; HttpOnly; login=password@password.org"
 
 curl -i -X POST http://localhost:8081/v1/auth/signout -H "Cookie: auth_cookie=1719724348102:cb754118-b3f4-41b1-95cf-caa13442629b; Max-Age=2629746; Expires=Sun, 30 Jun 2024 15:40:27 GMT; Secure; HttpOnly; login=password@password.org"
+
+curl -i -X DELETE http://localhost:8081/v1/auth/delete -H "Cookie: auth_cookie=1719732625791:7c092fc2-404e-458c-9ebb-854f84ac601a; Max-Age=2629746; Expires=Sun, 30 Jun 2024 17:59:31 GMT; Secure; HttpOnly; login=1717140419314@test.org"
+
+
+
+curl -i --user 1717140359494@test.org:password -X POST http://localhost:8081/v1/auth/signin
+
+curl -i -X DELETE http://localhost:8081/v1/auth/delete -H "Cookie: auth_cookie=1719732855034:4196e0bf-12d5-4b07-aa07-a297b41d0266; Max-Age=2629746; Expires=Sun, 30 Jun 2024 18:03:21 GMT; Secure; HttpOnly; login=1717140359494@test.org"
