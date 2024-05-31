@@ -2,6 +2,7 @@ package com.example.simpleonlinestore.controllers;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,8 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.PutMapping;
+
 
 @RestController
 public class UserController {
@@ -56,8 +59,8 @@ public class UserController {
   private static Pattern emailRegex = Pattern.compile("(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])");
 
   /**
-   * Simple signin route to authenticate users. Using Authorization header to pass thru login info as it is needed by loginFilter (needed to get here)
-   *  and would be redundant to pass login info in both header and body
+   * if user is authenticated (done by loginFilter) returns session cookie using login info from 
+   *  basic "Authorization" header. Otherwise returns BAD_REQUEST
    * @param authHeader with basic auth deatails password and email
    * @return ResponseEntity with status code
    */
@@ -79,9 +82,26 @@ public class UserController {
       return ResponseEntity.badRequest().build();
     }
   }  
+
+  /**
+   * runs validating logic on loginRequest details, if valid returned result is empty
+   * @param loginRequest
+   * @return Optional<ResponseEntity<String>>
+   */
+  private Optional<ResponseEntity<String>> validateLoginRequest(LoginRequest loginRequest) {
+    Optional<ResponseEntity<String>> result = Optional.empty();
+    if (userRepository.findByLogin(loginRequest.login()) != null) {
+      Optional.of(new ResponseEntity<String>("Login already in use", HttpStatus.BAD_REQUEST));
+    } else if (!emailRegex.matcher(loginRequest.login()).find()) {
+      Optional.of(new ResponseEntity<String>("Invalid email", HttpStatus.BAD_REQUEST));
+    } else if (loginRequest.password.length() < 8) {
+      Optional.of(new ResponseEntity<String>("Password less than 8 characters", HttpStatus.BAD_REQUEST));
+    }
+    return result;
+  }
   
   /**
-   * Simple signup route to create users, sends back session cookie back on valid signup.
+   * creates users and sends back session cookie back on valid signup.
    *  Returns BAD_REQUEST status if email already in use, email is invalid, and or password in less than 8 chars
    * @param response
    * @param loginRequest record of signup infomation (email, password)
@@ -89,12 +109,9 @@ public class UserController {
    */
   @PostMapping("/v1/auth/signup")
   public ResponseEntity<String> signup(HttpServletResponse response, @RequestBody LoginRequest loginRequest) {
-    if (userRepository.findByLogin(loginRequest.login()) != null) {
-      return new ResponseEntity<String>("Login already in use", HttpStatus.BAD_REQUEST);
-    } else if (!emailRegex.matcher(loginRequest.login()).find()) {
-      return new ResponseEntity<String>("Invalid email", HttpStatus.BAD_REQUEST);
-    } else if (loginRequest.password.length() < 8) {
-      return new ResponseEntity<String>("Password less than 8 characters", HttpStatus.BAD_REQUEST);
+    Optional<ResponseEntity<String>> validatingReponse = validateLoginRequest(loginRequest);
+    if (validatingReponse.isPresent()) {
+      return validatingReponse.get();
     }
 
     String encodedPassword = passwordEncoder.encode(loginRequest.password + secret);
@@ -107,8 +124,46 @@ public class UserController {
     return new ResponseEntity<String>("User signed up", HttpStatus.CREATED);
   }
 
+  /***
+   * checks new login info is valid, if it is valid updates user info and associated tables. 
+   * Also if the password changes ends all sessions.
+   * @param response
+   * @param loginRequest 
+   * @param loginCookieValue record of signup infomation (email, password)
+   * @param authCookieValue
+   * @return ResponseEntity with status code and string
+   */
+  @PutMapping("/v1/auth/user/update")
+  public ResponseEntity<String> updateUserCreds(HttpServletResponse response, @RequestBody LoginRequest loginRequest,
+    @CookieValue(CookieGenerator.COOKIE_LOGIN) String loginCookieValue,
+    @CookieValue(CookieGenerator.COOKE_NAME) String authCookieValue
+  ) {
+    Optional<ResponseEntity<String>> validatingReponse = validateLoginRequest(loginRequest);
+    if (validatingReponse.isPresent()) {
+      return validatingReponse.get();
+    }
+    
+    String oldEncodedPassword = userRepository.findByLogin(loginCookieValue).getPassword();
+    String encodedPassword = passwordEncoder.encode(loginRequest.password + secret);
+    // update user creds
+    userRepository.UpdateUserCreds(loginCookieValue, loginRequest.login(), encodedPassword);
+    // update associated tables
+    userRepository.updateAssociationsFromUpdate(loginCookieValue, loginRequest.login());
+    // if new password, deletes all sessions
+    if (!passwordEncoder.matches(loginRequest.password + secret, oldEncodedPassword)) {
+      sessionRepository.deleteAllUserSessions(loginRequest.login());
+      response.addCookie(cookieGenerator.invalidateCookie(loginRequest.login()));
+    } else {
+      Cookie newCookie = cookieGenerator.generateToken(loginRequest.login());
+      newCookie.setValue(authCookieValue);
+      response.addCookie(newCookie);
+    }
+
+    return ResponseEntity.ok("Done");
+  }
+
   /**
-   * delete user function, removes session and user from repositorys and sends back invalidated cookie (max age = 0) 
+   * removes cookie sessions and user from repositorys and sends back invalidated cookie (max age = 0) 
    *  so client deletes it
    * @param response
    * @param loginCookieValue value of login
@@ -130,7 +185,7 @@ public class UserController {
   }
   
   /**
-   * signout function, removes session from repository and sends back invalidated cookie (max age = 0) 
+   * removes received session from repository and sends back invalidated cookie (max age = 0) 
    *  so client deletes it
    * @param request
    * @param response

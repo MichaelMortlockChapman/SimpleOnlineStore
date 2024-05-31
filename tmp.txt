@@ -11,4 +11,8 @@ curl -i -X POST http://localhost:8081/v1/auth/signup -H "Content-Type: applicati
 
 curl -i --user 1717140359494@test.org:password -X POST http://localhost:8081/v1/auth/signin
 
-curl -i -X DELETE http://localhost:8081/v1/auth/delete -H "Cookie: auth_cookie=1719738964395:112f5cd1-1dfe-4ab6-9796-d893cf8d448e; Max-Age=2629746; Expires=Sun, 30 Jun 2024 19:45:10 GMT; Secure; HttpOnly; login=1@1.com"
+curl -i -X PUT http://localhost:8081/v1/auth/user/update \
+  -H "Content-Type: application/json" --data '{"login":"2@1.com","password":"password"}' \
+  -H "Cookie: auth_cookie=1719752100174:0befcc31-6110-44b1-97ff-8dd0c479eabb; Max-Age=2629746; Expires=Sun, 30 Jun 2024 19:45:10 GMT; Secure; HttpOnly; login=1@1.com"
+
+curl -i -X DELETE http://localhost:8081/v1/auth/delete -H "Cookie: auth_cookie=1719749195868:3bf26bf4-c859-4ead-881d-26a2db06f140; Max-Age=2629746; Expires=Sun, 30 Jun 2024 19:45:10 GMT; Secure; HttpOnly; login=1@1.com"
