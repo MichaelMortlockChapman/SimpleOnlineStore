@@ -9,15 +9,23 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.simpleonlinestore.database.sessions.Session;
+import com.example.simpleonlinestore.database.sessions.SessionRepository;
 import com.example.simpleonlinestore.database.users.User;
 import com.example.simpleonlinestore.database.users.UserRepository;
 import com.example.simpleonlinestore.security.UserRole;
-import com.example.simpleonlinestore.security.filters.tokens.JwtService;
+import com.example.simpleonlinestore.security.filters.cookies.CookieGenerator;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -33,7 +41,10 @@ public class UserController {
   private UserRepository userRepository;
 
   @Autowired
-  private JwtService jwtService;
+  private CookieGenerator cookieGenerator;
+
+  @Autowired
+  private SessionRepository sessionRepository;
 
   @Autowired
   private PasswordEncoder passwordEncoder;
@@ -51,7 +62,7 @@ public class UserController {
    * @return ResponseEntity with status code
    */
   @PostMapping("/v1/auth/signin")
-  public ResponseEntity<String> signin(@RequestHeader("Authorization") String authHeader) {
+  public ResponseEntity<String> signin(@RequestHeader("Authorization") String authHeader, HttpServletResponse response) {
     String base64Credentials = authHeader.substring("Basic".length()).trim();
     byte[] credDecoded = Base64.getDecoder().decode(base64Credentials);
     String credentials = new String(credDecoded, StandardCharsets.UTF_8);
@@ -60,7 +71,10 @@ public class UserController {
 
     Authentication authentication = new UsernamePasswordAuthenticationToken(loginRequest.login(), loginRequest.password(), userRepository.findByLogin(loginRequest.login()).getAuthorities());
     if (authentication.isAuthenticated()) {
-      return ResponseEntity.ok(jwtService.generateToken(loginRequest.login())); 
+      Cookie c = cookieGenerator.generateToken(loginRequest.login());
+      sessionRepository.save(new Session(c.getValue(), loginRequest.login()));
+      response.addCookie(c);
+      return ResponseEntity.ok().build(); 
     } else {
       return ResponseEntity.badRequest().build();
     }
@@ -85,6 +99,18 @@ public class UserController {
     String encodedPassword = passwordEncoder.encode(loginRequest.password + secret);
     userRepository.save(new User(loginRequest.login, encodedPassword, UserRole.ROLE_USER));
     return new ResponseEntity<String>("User signed up", HttpStatus.CREATED);
+  }
+  
+  @PostMapping("/v1/auth/signout")
+  public ResponseEntity<String> postMethodName(HttpServletRequest request, HttpServletResponse response,
+      @CookieValue(CookieGenerator.COOKIE_LOGIN) String loginCookieValue, 
+      @CookieValue(CookieGenerator.COOKE_NAME) String authCookieValue) {
+    SecurityContextHolder.clearContext();
+
+    response.addCookie(cookieGenerator.invalidateCookie(loginCookieValue));
+    sessionRepository.deleteById(authCookieValue);
+
+    return ResponseEntity.ok("Done");
   }
   
 }

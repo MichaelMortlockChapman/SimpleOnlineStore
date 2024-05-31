@@ -1,4 +1,4 @@
-package com.example.simpleonlinestore.security.filters.tokens;
+package com.example.simpleonlinestore.security.filters.jwt;
 
 import java.security.Key;
 import java.util.Date;

@@ -15,12 +15,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import com.example.simpleonlinestore.security.filters.ExceptionHandlerFilter;
+import com.example.simpleonlinestore.security.filters.cookies.CookieAuthenticationFilter;
+import com.example.simpleonlinestore.security.filters.jwt.TokenAuthenticationFilter;
 import com.example.simpleonlinestore.security.filters.logins.LoginAuthenticationFilter;
-import com.example.simpleonlinestore.security.filters.tokens.TokenAuthenticationFilter;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
-
 
 @Configuration
 @EnableWebSecurity
@@ -31,7 +31,7 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 public class SecurityConfig {
 
   @Autowired
-  private TokenAuthenticationFilter tokenAuthenticationFilter;
+  private CookieAuthenticationFilter cookieAuthenticationFilter;
 
   @Autowired
   private LoginAuthenticationFilter loginAuthenticationFilter;
@@ -65,12 +65,19 @@ public class SecurityConfig {
     return registration;
   }
 
+  @Bean
+  FilterRegistrationBean<CookieAuthenticationFilter> customerCookieFilter(CookieAuthenticationFilter filter) {
+    FilterRegistrationBean<CookieAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+    registration.setEnabled(false);
+    return registration;
+  }
+
   // custom filter for auth routes to permit them without authorization (also without cors and csrf )
   @Bean
   @Order(0)
   SecurityFilterChain authSignupSecurityFilterChain(HttpSecurity http) throws Exception {
     return http
-            .securityMatcher("/v1/auth/signup")
+            .securityMatcher("/v1/auth/signup", "/v1/auth/signout")
             .authorizeHttpRequests((authorize) -> authorize.anyRequest().permitAll())
             .cors(cors -> cors.disable())
             .csrf(csrf -> csrf.disable())
@@ -85,7 +92,7 @@ public class SecurityConfig {
     return http
             .securityMatcher("/v1/auth/signin")
             .authorizeHttpRequests((requests) -> requests.anyRequest().authenticated())
-            // .cors(cors -> cors.disable())
+            .cors(cors -> cors.disable())
             .csrf(csrf -> csrf.disable())
             .addFilterBefore(loginAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(exceptionHandlerFilter, LoginAuthenticationFilter.class)
@@ -100,8 +107,9 @@ public class SecurityConfig {
         .authorizeHttpRequests((requests) -> requests.requestMatchers(new AntPathRequestMatcher("/v1/auth/**")).permitAll().anyRequest().authenticated())
         // .cors(cors -> cors.disable())
         // .csrf(csrf -> csrf.disable())
-        .addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-        .addFilterBefore(exceptionHandlerFilter, TokenAuthenticationFilter.class)
+        .addFilterBefore(cookieAuthenticationFilter,  UsernamePasswordAuthenticationFilter.class)
+        // .addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+        .addFilterBefore(exceptionHandlerFilter, CookieAuthenticationFilter.class)
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .build();
   }

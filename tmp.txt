@@ -1,0 +1,5 @@
+curl -i --user password@password.org:password -X POST http://localhost:8081/v1/auth/signin
+
+curl http://localhost:8081/v1/hello/user -H "Cookie: auth_cookie=1719724348102:cb754118-b3f4-41b1-95cf-caa13442629b; Max-Age=2629746; Expires=Sun, 30 Jun 2024 15:40:27 GMT; Secure; HttpOnly; login=password@password.org"
+
+curl -i -X POST http://localhost:8081/v1/auth/signout -H "Cookie: auth_cookie=1719724348102:cb754118-b3f4-41b1-95cf-caa13442629b; Max-Age=2629746; Expires=Sun, 30 Jun 2024 15:40:27 GMT; Secure; HttpOnly; login=password@password.org"

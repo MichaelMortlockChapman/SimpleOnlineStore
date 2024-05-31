@@ -1,4 +1,4 @@
-package com.example.simpleonlinestore.security.filters.tokens;
+package com.example.simpleonlinestore.security.filters.jwt;
 
 import java.util.Collection;
 

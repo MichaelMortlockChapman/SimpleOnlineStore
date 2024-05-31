@@ -1,4 +1,4 @@
-package com.example.simpleonlinestore.security.filters.tokens;
+package com.example.simpleonlinestore.security.filters.jwt;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
