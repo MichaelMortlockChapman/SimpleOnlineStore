@@ -20,21 +20,43 @@ import org.springframework.http.MediaType;
 @AutoConfigureWebTestClient
 public class AuthTests {
   
-  private String getAuthMsgUsername(String username, String password) {
+  public static String getAuthMsgUsername(String username, String password) {
     byte[] bytes = Base64.getEncoder().encode((username + "@test.org:" +password).getBytes());
     return "Basic " + new String(bytes);
   }
 
-  private String getAuthMsg(String username) {
+  public static String getAuthMsg(String username) {
     return getAuthMsgUsername(username, "password");
+  }
+
+  private static String wrapString(String str) {
+    return "\"" + str + "\"";
+  }
+
+  public static final String USER_NAME = "Adam Jones";
+  public static final String USER_ADDRESS = "26 1st Street";
+  public static final String USER_CITY = "Metropolis";
+  public static final String USER_POSTALCODE = "1000";
+  public static final String USER_COUNTRY = "USA";
+
+  public static String createSignupJSON(String username) {
+    return "{"
+      + wrapString("login") + ":" + wrapString(username + "@test.org") + ","
+      + wrapString("password") + ":" + wrapString("password") + ","
+      + wrapString("name") + ":" + wrapString(USER_NAME) + ","
+      + wrapString("address") + ":" + wrapString(USER_ADDRESS) + ","
+      + wrapString("city") + ":" + wrapString(USER_CITY) + ","
+      + wrapString("postalCode") + ":" + wrapString(USER_POSTALCODE) + ","
+      + wrapString("country") + ":" + wrapString(USER_COUNTRY)
+      + "}";
   }
 
   @Test 
   void SignupAndDelete(@Autowired WebTestClient webClient) {
     String set_cookie = webClient
-      .post().uri("/v1/auth/signup")
+      .post().uri("/v1/auth/signup/customer")
       .contentType(MediaType.APPLICATION_JSON)
-      .bodyValue("{ \"login\": \"" + Instant.now().toEpochMilli() + "@test.org\", \"password\": \"password\"}")
+      .bodyValue(createSignupJSON(""+Instant.now().toEpochMilli())) 
       .exchange()
       .expectStatus().isCreated()
       .returnResult(HttpHeaders.class)
@@ -60,9 +82,9 @@ public class AuthTests {
 
     // signup
     String set_cookie = webClient
-      .post().uri("/v1/auth/signup")
+      .post().uri("/v1/auth/signup/customer")
       .contentType(MediaType.APPLICATION_JSON)
-      .bodyValue("{ \"login\": \"" + username + "@test.org\", \"password\": \"password\"}")
+      .bodyValue(createSignupJSON(""+Instant.now().toEpochMilli())) 
       .exchange()
       .expectStatus().isCreated()
       .returnResult(HttpHeaders.class)
@@ -122,9 +144,9 @@ public class AuthTests {
 
     // signup
     String set_cookie = webClient
-      .post().uri("/v1/auth/signup")
+      .post().uri("/v1/auth/signup/customer")
       .contentType(MediaType.APPLICATION_JSON)
-      .bodyValue("{ \"login\": \"" + username + "@test.org\", \"password\": \"password\"}")
+      .bodyValue(createSignupJSON(""+Instant.now().toEpochMilli())) 
       .exchange()
       .expectStatus().isCreated()
       .returnResult(HttpHeaders.class)
@@ -195,9 +217,9 @@ public class AuthTests {
 
     // signup
     String cookie1 = webClient
-      .post().uri("/v1/auth/signup")
+      .post().uri("/v1/auth/signup/customer")
       .contentType(MediaType.APPLICATION_JSON)
-      .bodyValue("{ \"login\": \"" + username + "@test.org\", \"password\": \"password\"}")
+      .bodyValue(createSignupJSON(""+Instant.now().toEpochMilli())) 
       .exchange()
       .expectStatus().isCreated()
       .returnResult(HttpHeaders.class)

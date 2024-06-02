@@ -2,6 +2,8 @@ package com.example.simpleonlinestore.database.customer;
 
 import java.util.UUID;
 
+import com.example.simpleonlinestore.database.IJSON;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -11,7 +13,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "customers")
-public class Customer {
+public class Customer implements IJSON {
 
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)
@@ -20,9 +22,6 @@ public class Customer {
 
   @Column(name="customer_name")
   private String name;
-
-  @Column(name="customer_email", unique = true)
-  private String email;
 
   @Column(name="customer_address")
   private String address;
@@ -40,10 +39,9 @@ public class Customer {
   @SuppressWarnings("unused")
   private Customer () {}
 
-  public Customer(String name, String email, String address,
+  public Customer(String name, String address,
       String city, Integer postalCode, String country) {
     this.name = name;
-    this.email = email;
     this.address = address;
     this.city = city;
     this.postalCode = postalCode;
@@ -56,10 +54,6 @@ public class Customer {
 
   public String getName() {
     return name;
-  }
-
-  public String getEmail() {
-    return email;
   }
 
   public String getAddress() {
@@ -76,5 +70,16 @@ public class Customer {
 
   public String getCountry() {
     return country;
+  }
+
+  @Override
+  public String toJSON() {
+    return "{"
+      + "\"name\"" + ":" + "\"" + getName() + "\"" + ","
+      + "\"address\"" + ":" + "\"" + getAddress() + "\"" + ","
+      + "\"city\"" + ":" + "\"" + getCity() + "\"" + ","
+      + "\"postalCode\"" + ":" + "\"" + getPostalCode() + "\"" + ","
+      + "\"country\"" + ":" + "\"" + getCountry() + "\""
+      + "}";
   }
 }

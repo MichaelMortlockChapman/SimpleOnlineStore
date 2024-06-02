@@ -77,7 +77,7 @@ public class SecurityConfig {
   @Order(0)
   SecurityFilterChain authSignupSecurityFilterChain(HttpSecurity http) throws Exception {
     return http
-            .securityMatcher("/v1/auth/signup", "/v1/auth/signout")
+            .securityMatcher("/v1/auth/signup/**", "/v1/auth/signout")
             .authorizeHttpRequests((authorize) -> authorize.anyRequest().permitAll())
             .cors(cors -> cors.disable())
             .csrf(csrf -> csrf.disable())

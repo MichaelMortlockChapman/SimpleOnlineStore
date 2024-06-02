@@ -1,11 +1,21 @@
 package com.example.simpleonlinestore.database.users;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import com.example.simpleonlinestore.database.customer.CustomerRepository;
 import com.example.simpleonlinestore.database.sessions.SessionRepository;
+import com.example.simpleonlinestore.database.userInfo.UserInfo;
+import com.example.simpleonlinestore.database.userInfo.UserInfoRepository;
+import com.example.simpleonlinestore.security.UserRole;
 
 @Service
 public class UserRepository {
@@ -16,14 +26,20 @@ public class UserRepository {
   @Autowired
   private SessionRepository sessionRepository;
 
-  // public User findByLoginUser(String login) {
-  //   for (User user : userRepo.findAll()) {
-  //     if (user.getLogin().equals(login)) {
-  //       return user;
-  //     }
-  //   }
-  //   return null;
-  // }
+  @Autowired
+  private CustomerRepository customerRepository;
+
+  @Autowired
+  private UserInfoRepository userInfoRepository;
+
+  private User findByLoginUser(String login) {
+    for (User user : userRepo.findAll()) {
+      if (user.getLogin().equals(login)) {
+        return user;
+      }
+    }
+    return null;
+  }
 
   public UserDetails findByLogin(String login) {
     for (User user : userRepo.findAll()) {
@@ -52,17 +68,39 @@ public class UserRepository {
     sessionRepository.updateAllUserSessions(oldLogin, newLogin);
   }
 
-  public void updateAssociationsFromDelete(User user) {
+  public CrudRepository<?,UUID> getRelatedRepo(String role) throws ResponseStatusException {
+    switch (role) {
+      case UserRole.ROLE_USER:
+        return customerRepository;
+      case UserRole.ROLE_ADMIN:
+        return null;
+      default:
+        throw new ResponseStatusException(HttpStatusCode.valueOf(500), "Bad User Role");
+    }
+  }
+
+  public void updateAssociationsFromDelete(User user) throws ResponseStatusException {
     sessionRepository.deleteAllUserSessions(user.getLogin());
+    CrudRepository<?, UUID> relatedRepo = getRelatedRepo(user.getRole());
+    userInfoRepository.findById(user.getId()).ifPresent(userInfo -> relatedRepo.deleteById(userInfo.getInfoId()));
+  }
+
+  public UUID findInfoIdFromLogin (String login) throws ResponseStatusException {
+    User user = findByLoginUser(login);
+    Optional<UserInfo> userInfo = userInfoRepository.findById(user.getId());
+    if (userInfo.isPresent()) {
+      return userInfo.get().getInfoId();
+    }
+    throw new ResponseStatusException(HttpStatusCode.valueOf(500), "Missing User Info");
   }
   
-  public void deleteById(User user) {
+  public void deleteById(User user) throws ResponseStatusException {
     updateAssociationsFromDelete(user);
     userRepo.deleteById(user.getId());
   }
 
   // returns boolean in case login doesn't exist
-  public Boolean deleteByLogin(String login) {
+  public Boolean deleteByLogin(String login) throws ResponseStatusException {
     for (User user : userRepo.findAll()) {
       if (user.getLogin().equals(login)) {
         deleteById(user);

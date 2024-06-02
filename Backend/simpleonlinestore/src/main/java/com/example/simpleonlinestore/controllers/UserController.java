@@ -14,9 +14,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
+import com.example.simpleonlinestore.database.customer.Customer;
+import com.example.simpleonlinestore.database.customer.CustomerRepository;
 import com.example.simpleonlinestore.database.sessions.Session;
 import com.example.simpleonlinestore.database.sessions.SessionRepository;
+import com.example.simpleonlinestore.database.userInfo.UserInfo;
+import com.example.simpleonlinestore.database.userInfo.UserInfoRepository;
 import com.example.simpleonlinestore.database.users.User;
 import com.example.simpleonlinestore.database.users.UserRepository;
 import com.example.simpleonlinestore.security.UserRole;
@@ -52,8 +57,18 @@ public class UserController {
   @Autowired
   private PasswordEncoder passwordEncoder;
 
+  @Autowired
+  private UserInfoRepository userInfoRepository;
+
+  @Autowired
+  private CustomerRepository customerRepository;
+
   // simple record for login info
   public record LoginRequest(String login, String password) {}
+
+  public record CustomerSignupRequest(String login, String password, 
+    String name, String address, String city, 
+    Integer postalCode, String country) {}
 
   // pattern for valid emails
   private static Pattern emailRegex = Pattern.compile("(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])");
@@ -107,18 +122,28 @@ public class UserController {
    * @param loginRequest record of signup infomation (email, password)
    * @return ResponseEntity with status code
    */
-  @PostMapping("/v1/auth/signup")
-  public ResponseEntity<String> signup(HttpServletResponse response, @RequestBody LoginRequest loginRequest) {
-    Optional<ResponseEntity<String>> validatingReponse = validateLoginRequest(loginRequest);
-    if (validatingReponse.isPresent()) {
-      return validatingReponse.get();
+  @PostMapping("/v1/auth/signup/customer")
+  public ResponseEntity<String> signup(HttpServletResponse response, @RequestBody CustomerSignupRequest signupRequest) {
+    Optional<ResponseEntity<String>> invalidatingReponse = validateLoginRequest(
+      new LoginRequest(signupRequest.login(), signupRequest.password())
+    );
+    if (invalidatingReponse.isPresent()) {
+      return invalidatingReponse.get();
     }
 
-    String encodedPassword = passwordEncoder.encode(loginRequest.password + secret);
-    userRepository.save(new User(loginRequest.login, encodedPassword, UserRole.ROLE_USER));
+    String encodedPassword = passwordEncoder.encode(signupRequest.password() + secret);
+    User user = new User(signupRequest.login(), encodedPassword, UserRole.ROLE_USER);
+    userRepository.save(user);
 
-    Cookie c = cookieGenerator.generateToken(loginRequest.login());
-    sessionRepository.save(new Session(c.getValue(), loginRequest.login()));
+    Customer customer = new Customer(
+      signupRequest.name(), signupRequest.address(), signupRequest.city(), 
+      signupRequest.postalCode(), signupRequest.country()
+    );
+    customerRepository.save(customer);
+    userInfoRepository.save(new UserInfo(user.getId(), customer.getId()));
+
+    Cookie c = cookieGenerator.generateToken(signupRequest.login());
+    sessionRepository.save(new Session(c.getValue(), signupRequest.login()));
     response.addCookie(c);
 
     return new ResponseEntity<String>("User signed up", HttpStatus.CREATED);
@@ -174,7 +199,7 @@ public class UserController {
   public ResponseEntity<String> deleteUser(HttpServletResponse response, 
     @CookieValue(CookieGenerator.COOKIE_LOGIN) String loginCookieValue,
     @CookieValue(CookieGenerator.COOKE_NAME) String authCookieValue
-  ) {
+  ) throws ResponseStatusException {
 
     response.addCookie(cookieGenerator.invalidateCookie(loginCookieValue));
     sessionRepository.deleteById(authCookieValue);
