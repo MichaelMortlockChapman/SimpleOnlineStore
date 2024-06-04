@@ -3,7 +3,6 @@ package com.example.simpleonlinestore;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 
@@ -29,7 +28,7 @@ public class AuthTests {
     return getAuthMsgUsername(username, "password");
   }
 
-  private static String wrapString(String str) {
+  public static String wrapString(String str) {
     return "\"" + str + "\"";
   }
 
@@ -212,7 +211,6 @@ public class AuthTests {
 
   @Test
   void updateUserLoginPassword(@Autowired WebTestClient webClient) {
-    webClient =webClient.mutate().responseTimeout(Duration.ofSeconds(100000)).build();
     String username = "" + Instant.now().toEpochMilli();
 
     // signup

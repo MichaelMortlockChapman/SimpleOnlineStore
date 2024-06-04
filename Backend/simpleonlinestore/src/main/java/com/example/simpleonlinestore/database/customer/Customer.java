@@ -2,7 +2,7 @@ package com.example.simpleonlinestore.database.customer;
 
 import java.util.UUID;
 
-import com.example.simpleonlinestore.database.IJSON;
+import com.example.simpleonlinestore.database.IJson;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -13,7 +13,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "customers")
-public class Customer implements IJSON {
+public class Customer implements IJson {
 
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)

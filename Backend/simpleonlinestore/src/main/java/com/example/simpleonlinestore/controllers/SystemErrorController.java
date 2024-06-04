@@ -2,6 +2,7 @@ package com.example.simpleonlinestore.controllers;
 
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -27,5 +28,12 @@ public class SystemErrorController implements ErrorController {
       }
     }
     return "error";
+  }
+
+  public static String createErrorJsonString(HttpStatusCode errorCode, String msg) {
+    return "{"
+      + "\"errorCode:\"" + errorCode + "\","
+      + "\"errorMessage:\"" + msg + "\""
+      + "}";
   }
 }

@@ -64,7 +64,7 @@ public class UserController {
   private CustomerRepository customerRepository;
 
   // simple record for login info
-  public record LoginRequest(String login, String password) {}
+  public record LoginDetails(String login, String password) {}
 
   public record CustomerSignupRequest(String login, String password, 
     String name, String address, String city, 
@@ -85,7 +85,7 @@ public class UserController {
     byte[] credDecoded = Base64.getDecoder().decode(base64Credentials);
     String credentials = new String(credDecoded, StandardCharsets.UTF_8);
     String[] values = credentials.split(":", 2);
-    LoginRequest loginRequest = new LoginRequest(values[0], values[1]);
+    LoginDetails loginRequest = new LoginDetails(values[0], values[1]);
 
     Authentication authentication = new UsernamePasswordAuthenticationToken(loginRequest.login(), loginRequest.password(), userRepository.findByLogin(loginRequest.login()).getAuthorities());
     if (authentication.isAuthenticated()) {
@@ -103,7 +103,7 @@ public class UserController {
    * @param loginRequest
    * @return Optional<ResponseEntity<String>>
    */
-  private Optional<ResponseEntity<String>> validateLoginRequest(LoginRequest loginRequest) {
+  private Optional<ResponseEntity<String>> validateLoginRequest(LoginDetails loginRequest) {
     Optional<ResponseEntity<String>> result = Optional.empty();
     if (userRepository.findByLogin(loginRequest.login()) != null) {
       Optional.of(new ResponseEntity<String>("Login already in use", HttpStatus.BAD_REQUEST));
@@ -125,7 +125,7 @@ public class UserController {
   @PostMapping("/v1/auth/signup/customer")
   public ResponseEntity<String> signup(HttpServletResponse response, @RequestBody CustomerSignupRequest signupRequest) {
     Optional<ResponseEntity<String>> invalidatingReponse = validateLoginRequest(
-      new LoginRequest(signupRequest.login(), signupRequest.password())
+      new LoginDetails(signupRequest.login(), signupRequest.password())
     );
     if (invalidatingReponse.isPresent()) {
       return invalidatingReponse.get();
@@ -159,7 +159,7 @@ public class UserController {
    * @return ResponseEntity with status code and string
    */
   @PutMapping("/v1/auth/user/update")
-  public ResponseEntity<String> updateUserCreds(HttpServletResponse response, @RequestBody LoginRequest loginRequest,
+  public ResponseEntity<String> updateUserCreds(HttpServletResponse response, @RequestBody LoginDetails loginRequest,
     @CookieValue(CookieGenerator.COOKIE_LOGIN) String loginCookieValue,
     @CookieValue(CookieGenerator.COOKE_NAME) String authCookieValue
   ) {

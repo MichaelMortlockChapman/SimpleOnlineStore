@@ -1,5 +1,6 @@
 package com.example.simpleonlinestore.database;
 
-public interface IJSON {
+// simple interface to add to entities which need a JSON output
+public interface IJson {
   public String toJSON();
 }

@@ -18,6 +18,8 @@ import static com.example.simpleonlinestore.AuthTests.USER_COUNTRY;
 import static com.example.simpleonlinestore.AuthTests.USER_NAME;
 import static com.example.simpleonlinestore.AuthTests.USER_POSTALCODE;
 import static com.example.simpleonlinestore.AuthTests.createSignupJSON;
+import static com.example.simpleonlinestore.AuthTests.wrapString;
+
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -25,6 +27,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class CustomerTests {
 
   private String cookie;
+
+  public static String createCustomerDeatailsJSON() {
+    return "{"
+      + wrapString("name") + ":" + wrapString("hi") + ","
+      + wrapString("address") + ":" + wrapString("hi") + ","
+      + wrapString("city") + ":" + wrapString("hi") + ","
+      + wrapString("postalCode") + ":" + wrapString("1") + ","
+      + wrapString("country") + ":" + wrapString("hi")
+      + "}";
+  }
 
   @BeforeEach
   public void start(@Autowired WebTestClient webClient) {
@@ -63,5 +75,42 @@ public class CustomerTests {
         assertTrue(bodyString.matches("(?i).*\"postalCode\":\"" + USER_POSTALCODE + "\"(.*)"));
         assertTrue(bodyString.matches("(?i).*\"country\":\"" + USER_COUNTRY + "\"(.*)"));
       });
+  }
+
+  @Test
+  void updateDetailsValidData(@Autowired WebTestClient webClient) {
+    webClient
+      .put().uri("/v1/customer/update")
+      .header("Cookie", cookie)
+      .contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(createCustomerDeatailsJSON())
+      .exchange()
+      .expectStatus().isOk();
+
+    webClient
+      .get().uri("/v1/customer/details")
+      .header("Cookie", cookie)
+      .exchange()
+      .expectStatus().isOk()
+      .expectBody()
+      .consumeWith(body -> {
+        String bodyString = new String(body.getResponseBodyContent());
+        assertTrue(bodyString.matches("(?i).*\"name\":\"" + "hi" + "\"(.*)"));
+        assertTrue(bodyString.matches("(?i).*\"address\":\"" + "hi" + "\"(.*)"));
+        assertTrue(bodyString.matches("(?i).*\"city\":\"" + "hi" + "\"(.*)"));
+        assertTrue(bodyString.matches("(?i).*\"postalCode\":\"" + "1" + "\"(.*)"));
+        assertTrue(bodyString.matches("(?i).*\"country\":\"" + "hi" + "\"(.*)"));
+      });
+  }
+
+  @Test
+  void  updateDetailsInvalidData(@Autowired WebTestClient webClient) {
+    webClient
+      .put().uri("/v1/customer/update")
+      .header("Cookie", cookie)
+      .contentType(MediaType.APPLICATION_JSON)
+      .bodyValue("")
+      .exchange()
+      .expectStatus().is4xxClientError();
   }
 }
