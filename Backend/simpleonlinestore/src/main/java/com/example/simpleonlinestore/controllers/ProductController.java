@@ -48,13 +48,21 @@ public class ProductController {
     return ResponseEntity.ok(productListJSON);
   }
 
+  public Optional<ResponseEntity<String>> checkProductExists(Integer productId) {
+    Optional<ResponseEntity<String>> result = Optional.empty();
+    if (!productRepository.findById(productId).isPresent()) {
+      result = Optional.of(new ResponseEntity<>("Unknown ProductId", HttpStatus.BAD_REQUEST));
+    }
+    return result;
+  }
+
   @GetMapping("/v1/product/get/{productId}")
   public ResponseEntity<String> findProduct(@PathVariable int productId) {
-    Optional<Product> product = this.productRepository.findById(productId);
-    if (product.isPresent()) {
-      return ResponseEntity.ok(product.get().toJSON());
+    Optional<ResponseEntity<String>> invalidatingReponse = checkProductExists(productId);
+    if (invalidatingReponse.isPresent()) {
+      return invalidatingReponse.get();
     }
-    return ResponseEntity.badRequest().body("Bad Product ID");
+    return ResponseEntity.ok(this.productRepository.findById(productId).get().toJSON());
   }
 
   @PutMapping("/v1/product/update")
@@ -73,8 +81,9 @@ public class ProductController {
   @DeleteMapping("/v1/product/delete")
   @Secured({UserRole.ROLE_ADMIN})
   public ResponseEntity<String> deleteProduct(@RequestBody Integer productId) {
-    if (!this.productRepository.findById(productId).isPresent()) {
-      return new ResponseEntity<String>("Unknown ProductID", HttpStatus.BAD_REQUEST);
+    Optional<ResponseEntity<String>> invalidatingReponse = checkProductExists(productId);
+    if (invalidatingReponse.isPresent()) {
+      return invalidatingReponse.get();
     }
     this.productRepository.deleteById(productId);
     return new ResponseEntity<String>("Done", HttpStatus.OK);

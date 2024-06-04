@@ -50,7 +50,7 @@ public class CustomerController {
   public ResponseEntity<String> getCustomerDetails(
     @CookieValue(CookieGenerator.COOKIE_LOGIN) String loginCookieValue
   ) throws ResponseStatusException {
-    Optional<Customer> customer = customerRepository.findById(userRepository.findInfoIdFromLogin(loginCookieValue));
+    Optional<Customer> customer = customerRepository.findById(userRepository.getRoleIdFromLogin(loginCookieValue));
     return ResponseEntity.ok(customer.get().toJSON());
   }
 
@@ -61,7 +61,7 @@ public class CustomerController {
     @RequestBody CustomerDetails customerDetails,
     @CookieValue(CookieGenerator.COOKIE_LOGIN) String loginCookieValue
   ) throws ResponseStatusException {
-    Optional<Customer> customer = customerRepository.findById(userRepository.findInfoIdFromLogin(loginCookieValue));
+    Optional<Customer> customer = customerRepository.findById(userRepository.getRoleIdFromLogin(loginCookieValue));
     customerRepository.updateCustomerDetails(
       customer.get().getId(), customerDetails.name(), customerDetails.address(),
       customerDetails.city(), customerDetails.postalCode(), customerDetails.country()

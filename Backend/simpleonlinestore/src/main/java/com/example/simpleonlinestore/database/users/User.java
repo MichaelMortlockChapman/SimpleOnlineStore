@@ -35,15 +35,19 @@ public class User implements UserDetails {
   @Column(name="role")
   private String role;
 
+  @Column(name="role_id")
+  private UUID roleId;
+
   // Hibernate expects entities to have a no-arg constructor,
   @SuppressWarnings("unused")
   private User () {}
 
-  public User(String login, String password, String role) {
+  public User(String login, String password, String role, UUID roleId) {
     this.login = login;
     this.password = password;
     this.role = role;
-  }
+    this.roleId = roleId;
+    }
 
   public UUID getId() {
     return id;
@@ -55,6 +59,10 @@ public class User implements UserDetails {
 
   public String getRole() {
     return role;
+  }
+
+  public UUID getRoleId() {
+    return roleId;
   }
 
   protected static final Collection<? extends GrantedAuthority> adminAuthorities = List.of(new SimpleGrantedAuthority(UserRole.ROLE_ADMIN), new SimpleGrantedAuthority(UserRole.ROLE_USER));

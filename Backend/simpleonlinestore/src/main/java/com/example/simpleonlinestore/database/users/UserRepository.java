@@ -1,6 +1,5 @@
 package com.example.simpleonlinestore.database.users;
 
-import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,8 +12,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.example.simpleonlinestore.database.customer.CustomerRepository;
 import com.example.simpleonlinestore.database.sessions.SessionRepository;
-import com.example.simpleonlinestore.database.userInfo.UserInfo;
-import com.example.simpleonlinestore.database.userInfo.UserInfoRepository;
 import com.example.simpleonlinestore.security.UserRole;
 
 @Service
@@ -28,9 +25,6 @@ public class UserRepository {
 
   @Autowired
   private CustomerRepository customerRepository;
-
-  @Autowired
-  private UserInfoRepository userInfoRepository;
 
   private User findByLoginUser(String login) {
     for (User user : userRepo.findAll()) {
@@ -79,19 +73,17 @@ public class UserRepository {
     }
   }
 
-  public void updateAssociationsFromDelete(User user) throws ResponseStatusException {
-    sessionRepository.deleteAllUserSessions(user.getLogin());
-    CrudRepository<?, UUID> relatedRepo = getRelatedRepo(user.getRole());
-    userInfoRepository.findById(user.getId()).ifPresent(userInfo -> relatedRepo.deleteById(userInfo.getInfoId()));
+  public UUID getRoleIdFromLogin(String login) {
+    return findByLoginUser(login).getRoleId();
   }
 
-  public UUID findInfoIdFromLogin (String login) throws ResponseStatusException {
-    User user = findByLoginUser(login);
-    Optional<UserInfo> userInfo = userInfoRepository.findById(user.getId());
-    if (userInfo.isPresent()) {
-      return userInfo.get().getInfoId();
+  public void updateAssociationsFromDelete(User user) throws ResponseStatusException {
+    sessionRepository.deleteAllUserSessions(user.getLogin());
+    
+    CrudRepository<?, UUID> relatedRepo = getRelatedRepo(user.getRole());
+    if (relatedRepo != null) {
+      relatedRepo.deleteById(user.getRoleId());
     }
-    throw new ResponseStatusException(HttpStatusCode.valueOf(500), "Missing User Info");
   }
   
   public void deleteById(User user) throws ResponseStatusException {

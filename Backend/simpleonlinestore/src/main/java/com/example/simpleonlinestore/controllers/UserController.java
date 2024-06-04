@@ -20,8 +20,6 @@ import com.example.simpleonlinestore.database.customer.Customer;
 import com.example.simpleonlinestore.database.customer.CustomerRepository;
 import com.example.simpleonlinestore.database.sessions.Session;
 import com.example.simpleonlinestore.database.sessions.SessionRepository;
-import com.example.simpleonlinestore.database.userInfo.UserInfo;
-import com.example.simpleonlinestore.database.userInfo.UserInfoRepository;
 import com.example.simpleonlinestore.database.users.User;
 import com.example.simpleonlinestore.database.users.UserRepository;
 import com.example.simpleonlinestore.security.UserRole;
@@ -56,9 +54,6 @@ public class UserController {
 
   @Autowired
   private PasswordEncoder passwordEncoder;
-
-  @Autowired
-  private UserInfoRepository userInfoRepository;
 
   @Autowired
   private CustomerRepository customerRepository;
@@ -131,17 +126,16 @@ public class UserController {
       return invalidatingReponse.get();
     }
 
-    String encodedPassword = passwordEncoder.encode(signupRequest.password() + secret);
-    User user = new User(signupRequest.login(), encodedPassword, UserRole.ROLE_USER);
-    userRepository.save(user);
-
     Customer customer = new Customer(
       signupRequest.name(), signupRequest.address(), signupRequest.city(), 
       signupRequest.postalCode(), signupRequest.country()
     );
     customerRepository.save(customer);
-    userInfoRepository.save(new UserInfo(user.getId(), customer.getId()));
 
+    String encodedPassword = passwordEncoder.encode(signupRequest.password() + secret);
+    User user = new User(signupRequest.login(), encodedPassword, UserRole.ROLE_USER, customer.getId());
+    userRepository.save(user);
+      
     Cookie c = cookieGenerator.generateToken(signupRequest.login());
     sessionRepository.save(new Session(c.getValue(), signupRequest.login()));
     response.addCookie(c);
