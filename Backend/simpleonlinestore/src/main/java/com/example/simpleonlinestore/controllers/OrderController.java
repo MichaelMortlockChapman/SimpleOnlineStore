@@ -93,7 +93,7 @@ public class OrderController {
    */
   @PostMapping("/v1/order/create")
   @Secured({UserRole.ROLE_USER})
-  public ResponseEntity<String> createSimpleOrder(
+  public ResponseEntity<String> createOrder(
     @CookieValue(CookieGenerator.COOKIE_LOGIN) String loginCookieValue,  
     @RequestBody OrderRequest orderRequest
   ) {
@@ -122,7 +122,7 @@ public class OrderController {
    */
   @PostMapping("/v1/order/admin/create")
   @Secured({UserRole.ROLE_ADMIN})
-  public ResponseEntity<String> createSimpleOrder(
+  public ResponseEntity<String> createOrderAsAdmin(
     @RequestBody UUID customerId,
     @RequestBody OrderRequest orderRequest
   ) {

@@ -8,8 +8,10 @@ import java.util.Base64;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 import org.springframework.http.HttpHeaders;
@@ -17,10 +19,17 @@ import org.springframework.http.MediaType;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
+@PropertySource("classpath:/testing.properties")
 public class AuthTests {
+
+  @Value("${super.email}")
+  private String adminEmail;
+
+  @Value("${super.password}")
+  private String adminPassword;
   
   public static String getAuthMsgUsername(String username, String password) {
-    byte[] bytes = Base64.getEncoder().encode((username + "@test.org:" +password).getBytes());
+    byte[] bytes = Base64.getEncoder().encode((username + ":" +password).getBytes());
     return "Basic " + new String(bytes);
   }
 
@@ -118,7 +127,7 @@ public class AuthTests {
     // sign into account
     set_cookie = webClient
       .post().uri("/v1/auth/signin")
-      .header("Authorization", getAuthMsg(username))
+      .header("Authorization", getAuthMsg(username + "@test.org"))
       .exchange()
       .expectStatus().isOk()
       .returnResult(HttpHeaders.class)
@@ -250,7 +259,7 @@ public class AuthTests {
     // try sign with new email expect ok
     set_cookie = webClient
       .post().uri("/v1/auth/signin")
-      .header("Authorization", getAuthMsg(username + "a"))
+      .header("Authorization", getAuthMsg(username + "a" + "@test.org"))
       .exchange()
       .expectStatus().isOk()
       .returnResult(HttpHeaders.class)
@@ -259,7 +268,7 @@ public class AuthTests {
     // try sign with old email expect unauthorized
     webClient
       .post().uri("/v1/auth/signin")
-      .header("Authorization", getAuthMsg(username))
+      .header("Authorization", getAuthMsg(username + "@test.org"))
       .exchange()
       .expectStatus().isUnauthorized();
 
@@ -314,7 +323,7 @@ public class AuthTests {
     // try sign with new password
     String cookeie3 = webClient
       .post().uri("/v1/auth/signin")
-      .header("Authorization", getAuthMsgUsername(username + "a", newPassword))
+      .header("Authorization", getAuthMsgUsername(username + "a" + "@test.org", newPassword))
       .exchange()
       .expectStatus().isOk()
       .returnResult(HttpHeaders.class)
@@ -377,7 +386,7 @@ public class AuthTests {
     // sign into account
     String cookie2 = webClient
       .post().uri("/v1/auth/signin")
-      .header("Authorization", getAuthMsg(username))
+      .header("Authorization", getAuthMsg(username + "@test.org"))
       .exchange()
       .expectStatus().isOk()
       .returnResult(HttpHeaders.class)
@@ -407,7 +416,7 @@ public class AuthTests {
     // clean up (delete user)
     String cookie3 = webClient
       .post().uri("/v1/auth/signin")
-      .header("Authorization", getAuthMsg(username))
+      .header("Authorization", getAuthMsg(username + "@test.org"))
       .exchange()
       .expectStatus().isOk()
       .returnResult(HttpHeaders.class)
@@ -417,5 +426,28 @@ public class AuthTests {
       .header("Cookie", cookie3)
       .exchange()
       .expectStatus().isOk();   
+  }
+
+  @Test
+  void adminSiginValid(@Autowired WebTestClient webClient) {
+    String cookie = webClient
+      .post().uri("/v1/auth/signin")
+      .header("Authorization", getAuthMsgUsername(adminEmail, adminPassword))
+      .exchange()
+      .expectStatus().isOk()
+      .returnResult(HttpHeaders.class)
+      .getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
+
+    webClient
+      .get().uri("/v1/hello/admin")
+      .header("Cookie", cookie)
+      .exchange()
+      .expectStatus().isOk();
+
+    webClient
+      .post().uri("/v1/auth/signout")
+      .header("Cookie", cookie)
+      .exchange()
+      .expectStatus().isOk();
   }
 }

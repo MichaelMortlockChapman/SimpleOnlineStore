@@ -79,9 +79,12 @@ public class ProductController {
       return ResponseEntity.ok("Done");
   }
   
+  public record ProductRequest(String name, String description, Integer units, Long price) {}
+
   @PostMapping("/v1/product/add")
   @Secured({UserRole.ROLE_ADMIN})
-  public ResponseEntity<String> addProduct(@RequestBody Product product) {
+  public ResponseEntity<String> addProduct(@RequestBody ProductRequest productRequest) {
+    Product product = new Product(productRequest.name(), productRequest.description(), productRequest.units(), productRequest.price());
     this.productRepository.save(product);
     return new ResponseEntity<String>("{ productId: \"" + product.getId() +"\"}", HttpStatus.CREATED);
   }

@@ -14,8 +14,9 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 
 import com.example.simpleonlinestore.controllers.ProductController;
 import com.example.simpleonlinestore.controllers.ProductController.OrderUpdateRequest;
-import com.example.simpleonlinestore.database.product.Product;
+import com.example.simpleonlinestore.controllers.ProductController.ProductRequest;
 import com.example.simpleonlinestore.security.SecurityConfig;
+import static com.example.simpleonlinestore.AuthTests.wrapString;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
@@ -25,10 +26,19 @@ public class ProductTests {
   @Autowired
   private ProductController productController;
 
+  public static String createProductJSON() {
+    return "{"
+      + wrapString("name") + ":" + wrapString("PS3") + ","
+      + wrapString("description") + ":" + wrapString("Video Game Console") + ","
+      + wrapString("units") + ":" + wrapString("5") + ","
+      + wrapString("price") + ":" + wrapString("100000")
+      + "}";
+  }
+
   @Test
   @WithMockUser(roles = "ADMIN")
   void addProductAndGetProduct(@Autowired WebTestClient webClient) {
-    ResponseEntity<String> reponse = productController.addProduct(new Product("PS3", "Video Game Console", 5, (long)1000000));
+    ResponseEntity<String> reponse = productController.addProduct(new ProductRequest("PS3", "Video Game Console", 5, (long)1000000));
     assertTrue(reponse.getStatusCode().equals(HttpStatusCode.valueOf(201)));
     assertTrue(reponse.getBody() != null);
     @SuppressWarnings("null")
@@ -58,8 +68,8 @@ public class ProductTests {
   @WithMockUser(roles = "ADMIN")
   void addProductAndGetAll(@Autowired WebTestClient webClient) {
     // create products, get their IDs
-    ResponseEntity<String> reponse = productController.addProduct(new Product("PS3", "Video Game Console", 5, (long)1000000));
-    ResponseEntity<String> reponse2 = productController.addProduct(new Product("PS4", "Video Game Console", 5, (long)5000000));
+    ResponseEntity<String> reponse = productController.addProduct(new ProductRequest("PS3", "Video Game Console", 5, (long)1000000));
+    ResponseEntity<String> reponse2 = productController.addProduct(new ProductRequest("PS4", "Video Game Console", 5, (long)5000000));
     assertTrue(reponse2.getBody() != null && reponse.getBody() != null);
     Integer ps3ProductId = Integer.parseInt(reponse.getBody().replace("{ productId: \"", "").replace("\"}", ""));
     Integer ps4ProductId = Integer.parseInt(reponse2.getBody().replace("{ productId: \"", "").replace("\"}", ""));
@@ -87,7 +97,7 @@ public class ProductTests {
   @WithMockUser(roles = "ADMIN")
   void updateProductWithValidDataWorks(@Autowired WebTestClient webClient) {
     // create product
-    ResponseEntity<String> reponse = productController.addProduct(new Product("PS3", "Video Game Console", 5, (long)1000000));
+    ResponseEntity<String> reponse = productController.addProduct(new ProductRequest("PS3", "Video Game Console", 5, (long)1000000));
     assertTrue(reponse.getBody() != null);
     Integer productId = Integer.parseInt(reponse.getBody().replace("{ productId: \"", "").replace("\"}", ""));
     // update
@@ -122,7 +132,7 @@ public class ProductTests {
   @WithMockUser(roles = "USER")
   void errorIfUserUsesAddProduct(@Autowired WebTestClient webClient) {
     try {
-      productController.addProduct(new Product("PS3", "Video Game Console", 5, (long)1000000));
+      productController.addProduct(new ProductRequest("PS3", "Video Game Console", 5, (long)1000000));
       assertTrue(false);
     } catch (Exception e) { // cannot check e is instanceOf AccessDeniedException as addProduct doesn't directly throw it
       assertTrue(e.getMessage().equals("Access Denied"));

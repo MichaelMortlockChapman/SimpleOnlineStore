@@ -28,7 +28,7 @@ public class CustomerTests {
 
   private String cookie;
 
-  public static String createCustomerDeatailsJSON() {
+  public static String createCustomerDetailsJSON() {
     return "{"
       + wrapString("name") + ":" + wrapString("hi") + ","
       + wrapString("address") + ":" + wrapString("hi") + ","
@@ -83,7 +83,7 @@ public class CustomerTests {
       .put().uri("/v1/customer/update")
       .header("Cookie", cookie)
       .contentType(MediaType.APPLICATION_JSON)
-      .bodyValue(createCustomerDeatailsJSON())
+      .bodyValue(createCustomerDetailsJSON())
       .exchange()
       .expectStatus().isOk();
 

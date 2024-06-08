@@ -69,7 +69,7 @@ public class User implements UserDetails {
   protected static final Collection<? extends GrantedAuthority> userAuthorities = List.of(new SimpleGrantedAuthority(UserRole.ROLE_USER));
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
-    if (this.role == UserRole.ROLE_ADMIN) {
+    if (this.role.equals(UserRole.ROLE_ADMIN)) {
       return adminAuthorities;
     } else {
       return userAuthorities; 
