@@ -38,9 +38,11 @@ public class AuthTests {
   public static final String USER_POSTALCODE = "1000";
   public static final String USER_COUNTRY = "USA";
 
-  public static String createSignupJSON(String username) {
+  public static String createSignupJSONAll(String email, String password, 
+    String name, String address, String city, String postalCode, String country
+  ) {
     return "{"
-      + wrapString("login") + ":" + wrapString(username + "@test.org") + ","
+      + wrapString("login") + ":" + wrapString(email) + ","
       + wrapString("password") + ":" + wrapString("password") + ","
       + wrapString("name") + ":" + wrapString(USER_NAME) + ","
       + wrapString("address") + ":" + wrapString(USER_ADDRESS) + ","
@@ -48,6 +50,11 @@ public class AuthTests {
       + wrapString("postalCode") + ":" + wrapString(USER_POSTALCODE) + ","
       + wrapString("country") + ":" + wrapString(USER_COUNTRY)
       + "}";
+  }
+
+  public static String createSignupJSON(String username) {
+    return createSignupJSONAll(username + "@test.org", "password", 
+      USER_NAME, USER_ADDRESS, USER_CITY, USER_POSTALCODE, USER_COUNTRY);
   }
 
   @Test 
@@ -138,6 +145,61 @@ public class AuthTests {
   }
 
   @Test
+  void cannotUseSameLogin(@Autowired WebTestClient webClient) {
+    String username = "" + Instant.now().toEpochMilli();
+
+    // signup
+    String set_cookie = webClient
+      .post().uri("/v1/auth/signup/customer")
+      .contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(createSignupJSON(username)) 
+      .exchange()
+      .expectStatus().isCreated()
+      .returnResult(HttpHeaders.class)
+      .getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
+    
+    // try signing up with same email
+    webClient
+      .post().uri("/v1/auth/signup/customer")
+      .contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(createSignupJSON(username)) 
+      .exchange()
+      .expectStatus().isBadRequest();
+
+    // clean up (delete user)
+    webClient
+      .delete().uri("/v1/auth/delete")
+      .header("Cookie", set_cookie)
+      .exchange()
+      .expectStatus().isOk();
+  }
+
+  @Test
+  void cannotUseBadEmail(@Autowired WebTestClient webClient) {
+    // try signing up with bad email
+    webClient
+      .post().uri("/v1/auth/signup/customer")
+      .contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(createSignupJSONAll("bad#", "password", 
+        USER_NAME, USER_ADDRESS, USER_CITY, USER_POSTALCODE, USER_COUNTRY)) 
+      .exchange()
+      .expectStatus().isBadRequest();
+  }
+
+  @Test
+  void cannotUse7CharPassword(@Autowired WebTestClient webClient) {
+    // try signing up with password under 8 chars
+    webClient
+      .post().uri("/v1/auth/signup/customer")
+      .contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(createSignupJSONAll("A@a.a", "passwor", 
+        USER_NAME, USER_ADDRESS, USER_CITY, USER_POSTALCODE, USER_COUNTRY)) 
+      .exchange()
+      .expectStatus().isBadRequest();
+  }
+
+
+  @Test
   void updateUserLoginEmail(@Autowired WebTestClient webClient) {
     String username = "" + Instant.now().toEpochMilli();
 
@@ -217,7 +279,7 @@ public class AuthTests {
     String cookie1 = webClient
       .post().uri("/v1/auth/signup/customer")
       .contentType(MediaType.APPLICATION_JSON)
-      .bodyValue(createSignupJSON(""+Instant.now().toEpochMilli())) 
+      .bodyValue(createSignupJSON(username)) 
       .exchange()
       .expectStatus().isCreated()
       .returnResult(HttpHeaders.class)
@@ -229,7 +291,7 @@ public class AuthTests {
       .put().uri("/v1/auth/user/update")
       .contentType(MediaType.APPLICATION_JSON)
       .header("Cookie", cookie1)
-      .bodyValue("{ \"login\": \"" + username + "@test.org\", \"password\": \"" + newPassword + "\"}")
+      .bodyValue("{ \"login\": \"" + username + "a" + "@test.org\", \"password\": \"" + newPassword + "\"}")
       .exchange()
       .expectStatus().isOk()
       .returnResult(HttpHeaders.class)
@@ -252,7 +314,7 @@ public class AuthTests {
     // try sign with new password
     String cookeie3 = webClient
       .post().uri("/v1/auth/signin")
-      .header("Authorization", getAuthMsgUsername(username, newPassword))
+      .header("Authorization", getAuthMsgUsername(username + "a", newPassword))
       .exchange()
       .expectStatus().isOk()
       .returnResult(HttpHeaders.class)
@@ -262,6 +324,97 @@ public class AuthTests {
     webClient
       .delete().uri("/v1/auth/delete")
       .header("Cookie", cookeie3)
+      .exchange()
+      .expectStatus().isOk();   
+  }
+
+  @Test
+  void updateWithBadDeatilsIsInvalid(@Autowired WebTestClient webClient) {
+    String username = "" + Instant.now().toEpochMilli();
+
+    // signup
+    String cookie1 = webClient
+      .post().uri("/v1/auth/signup/customer")
+      .contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(createSignupJSON(username)) 
+      .exchange()
+      .expectStatus().isCreated()
+      .returnResult(HttpHeaders.class)
+      .getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
+
+    // update email
+    String newPassword = "passwo";
+    webClient
+      .put().uri("/v1/auth/user/update")
+      .contentType(MediaType.APPLICATION_JSON)
+      .header("Cookie", cookie1)
+      .bodyValue("{ \"login\": \"" + username + "a" + "@test.org\", \"password\": \"" + newPassword + "\"}")
+      .exchange()
+      .expectStatus().isBadRequest();
+
+    // clean up (delete user)
+    webClient
+      .delete().uri("/v1/auth/delete")
+      .header("Cookie", cookie1)
+      .exchange()
+      .expectStatus().isOk();  
+  }
+
+  @Test
+  void signoutAllValid(@Autowired WebTestClient webClient) {
+    String username = "" + Instant.now().toEpochMilli();
+
+    // signup
+    String cookie1 = webClient
+      .post().uri("/v1/auth/signup/customer")
+      .contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(createSignupJSON(username)) 
+      .exchange()
+      .expectStatus().isCreated()
+      .returnResult(HttpHeaders.class)
+      .getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
+
+    // sign into account
+    String cookie2 = webClient
+      .post().uri("/v1/auth/signin")
+      .header("Authorization", getAuthMsg(username))
+      .exchange()
+      .expectStatus().isOk()
+      .returnResult(HttpHeaders.class)
+      .getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
+
+    //sign out all
+    webClient
+      .post().uri("/v1/auth/signout/all")
+      .header("Cookie", cookie2)
+      .exchange()
+      .expectStatus().isOk();
+
+    //check cookie 2 is invalid
+    webClient
+      .get().uri("/v1/hello/user")
+      .header("Cookie", cookie2)
+      .exchange()
+      .expectStatus().isUnauthorized();
+    
+    //check cookie 1 is invalid
+    webClient
+      .get().uri("/v1/hello/user")
+      .header("Cookie", cookie1)
+      .exchange()
+      .expectStatus().isUnauthorized();
+      
+    // clean up (delete user)
+    String cookie3 = webClient
+      .post().uri("/v1/auth/signin")
+      .header("Authorization", getAuthMsg(username))
+      .exchange()
+      .expectStatus().isOk()
+      .returnResult(HttpHeaders.class)
+      .getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
+    webClient
+      .delete().uri("/v1/auth/delete")
+      .header("Cookie", cookie3)
       .exchange()
       .expectStatus().isOk();   
   }

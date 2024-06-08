@@ -1,7 +1,6 @@
 package com.example.simpleonlinestore.controllers;
 
 import org.springframework.security.access.annotation.Secured;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -25,8 +24,7 @@ public class HelloController {
 
   @GetMapping("/v1/hello/admin")
   @Secured({UserRole.ROLE_ADMIN})
-  public String helloAdmin(Authentication authentication) {
-    System.out.println(authentication.getAuthorities().toString());
+  public String helloAdmin() {
     return welcomeSalutation + ", admin!";
   }
 }

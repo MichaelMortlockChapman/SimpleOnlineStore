@@ -29,9 +29,6 @@ public class ProductController {
     this.productRepository = productRepository;
   }
 
-  public record ProductObject(Integer id, String name, 
-    String description, Integer units, Long price) {}
-
   @GetMapping("/v1/product/get/all")
   public ResponseEntity<String> findAllProducts() {
     String productListJSON = "[";
@@ -65,10 +62,21 @@ public class ProductController {
     return ResponseEntity.ok(this.productRepository.findById(productId).get().toJSON());
   }
 
+  public record OrderUpdateRequest(
+    Integer id, String name, 
+    String description, Integer units, 
+    Long price
+  ) {};
+
   @PutMapping("/v1/product/update")
   @Secured({UserRole.ROLE_ADMIN})
-  public void updateProduct(@RequestBody Product product) {
-      // return this.productRepository.save(product);
+  public ResponseEntity<String> updateProduct(@RequestBody OrderUpdateRequest product) {
+      productRepository.updateProductDetails(
+        product.id(), product.name(), 
+        product.description(), product.units(), product.price()
+      );
+
+      return ResponseEntity.ok("Done");
   }
   
   @PostMapping("/v1/product/add")
@@ -86,6 +94,6 @@ public class ProductController {
       return invalidatingReponse.get();
     }
     this.productRepository.deleteById(productId);
-    return new ResponseEntity<String>("Done", HttpStatus.OK);
+    return ResponseEntity.ok("Done");
   }
 }

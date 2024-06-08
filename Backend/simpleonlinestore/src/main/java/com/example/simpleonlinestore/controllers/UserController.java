@@ -9,10 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -82,15 +80,11 @@ public class UserController {
     String[] values = credentials.split(":", 2);
     LoginDetails loginRequest = new LoginDetails(values[0], values[1]);
 
-    Authentication authentication = new UsernamePasswordAuthenticationToken(loginRequest.login(), loginRequest.password(), userRepository.findByLogin(loginRequest.login()).getAuthorities());
-    if (authentication.isAuthenticated()) {
-      Cookie c = cookieGenerator.generateToken(loginRequest.login());
-      sessionRepository.save(new Session(c.getValue(), loginRequest.login()));
-      response.addCookie(c);
-      return ResponseEntity.ok().build(); 
-    } else {
-      return ResponseEntity.badRequest().build();
-    }
+    // to get here needed to be authenticated by login filter so can be assumed
+    Cookie c = cookieGenerator.generateToken(loginRequest.login());
+    sessionRepository.save(new Session(c.getValue(), loginRequest.login()));
+    response.addCookie(c);
+    return ResponseEntity.ok().build(); 
   }  
 
   /**
@@ -101,11 +95,11 @@ public class UserController {
   private Optional<ResponseEntity<String>> validateLoginRequest(LoginDetails loginRequest) {
     Optional<ResponseEntity<String>> result = Optional.empty();
     if (userRepository.findByLogin(loginRequest.login()) != null) {
-      Optional.of(new ResponseEntity<String>("Login already in use", HttpStatus.BAD_REQUEST));
+      result = Optional.of(new ResponseEntity<String>("Login already in use", HttpStatus.BAD_REQUEST));
     } else if (!emailRegex.matcher(loginRequest.login()).find()) {
-      Optional.of(new ResponseEntity<String>("Invalid email", HttpStatus.BAD_REQUEST));
+      result = Optional.of(new ResponseEntity<String>("Invalid email", HttpStatus.BAD_REQUEST));
     } else if (loginRequest.password.length() < 8) {
-      Optional.of(new ResponseEntity<String>("Password less than 8 characters", HttpStatus.BAD_REQUEST));
+      result = Optional.of(new ResponseEntity<String>("Password less than 8 characters", HttpStatus.BAD_REQUEST));
     }
     return result;
   }

@@ -2,6 +2,7 @@ package com.example.simpleonlinestore.database.order;
 
 import java.util.UUID;
 
+import com.example.simpleonlinestore.database.IJson;
 import com.example.simpleonlinestore.database.customer.Customer;
 import com.example.simpleonlinestore.database.product.Product;
 
@@ -16,7 +17,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "orders")
-public class Order {
+public class Order implements IJson {
 
   @Id
   @GeneratedValue(strategy = GenerationType.AUTO)
@@ -41,7 +42,7 @@ public class Order {
   private String city;
 
   @Column(name="delivery_postal_code")
-  private Integer postal_code;
+  private Integer postalCode;
 
   @Column(name="delivery_country")
   private String country;
@@ -54,13 +55,13 @@ public class Order {
   private Order () {}
 
   public Order(Product product, Customer customer, Integer quantity, String address, String city,
-      Integer postal_code, String country, String status) {
+      Integer postalCode, String country, String status) {
     this.product = product;
     this.customer = customer;
     this.quantity = quantity;
     this.address = address;
     this.city = city;
-    this.postal_code = postal_code;
+    this.postalCode = postalCode;
     this.country = country;
     this.status = status;
   }
@@ -89,8 +90,8 @@ public class Order {
     return city;
   }
 
-  public Integer getPostal_code() {
-    return postal_code;
+  public Integer getPostalCode() {
+    return postalCode;
   }
 
   public String getCountry() {
@@ -99,5 +100,20 @@ public class Order {
 
   public String getStatus() {
     return status;
+  }
+
+  @Override
+  public String toJSON() {
+    return "{"
+      + "\"orderId\"" + ":" + "\"" + getId() + "\"" + ","
+      + "\"productId\"" + ":" + "\"" + product.getId() + "\"" + ","
+      + "\"customerId\"" + ":" + "\"" + customer.getId() + "\"" + ","
+      + "\"quantity\"" + ":" + "\"" + getQuantity() + "\"" + ","
+      + "\"address\"" + ":" + "\"" + getAddress() + "\"" + ","
+      + "\"city\"" + ":" + "\"" + getCity() + "\"" + ","
+      + "\"postalCode\"" + ":" + "\"" + getPostalCode() + "\"" + ","
+      + "\"country\"" + ":" + "\"" + getCountry() + "\"" + ","
+      + "\"status\"" + ":" + "\"" + getStatus() + "\""
+      + "}";
   }
 }
