@@ -14,6 +14,17 @@ public interface OrderRepository extends CrudRepository<Order, UUID> {
   @Query("UPDATE Order SET status = ?2 WHERE id = ?1")
   void updateOrderStatus(UUID orderId, String status);
 
+  // don't remove order when customer is deleted but set to null as ref would point to non-existing customer
+  @Transactional
+  @Modifying
+  @Query("UPDATE Order SET customer = null WHERE customer.id = ?1")
+  void removeDeletedCustomer(UUID customerId);
+
+  @Transactional
+  @Modifying
+  @Query("UPDATE Order SET product = null WHERE product.id = ?1")
+  void removeDeletedProduct(Integer productId);
+
   @Transactional
   @Modifying
   @Query("UPDATE Order SET quantity = ?3, address = ?4, city = ?5, postalCode = ?6, country = ?7  WHERE id = ?1 AND customer.id = ?2")
@@ -22,9 +33,9 @@ public interface OrderRepository extends CrudRepository<Order, UUID> {
     String city, Integer postalCode, String country
   );
 
-  @Query("SELECT o FROM Order o WHERE o.id = ?1")
+  @Query("SELECT o FROM Order o WHERE o.customer.id = ?1")
   Iterable<Order> getAllOrders(UUID customerId);
 
-  @Query("SELECT o FROM Order o WHERE o.id = ?1 AND o.status <> '"+OrderStatuses.COMPLETE+"' AND o.status <> '"+OrderStatuses.CANCELED+"'")
+  @Query("SELECT o FROM Order o WHERE o.customer.id = ?1 AND (o.status != 'COMPLETE' AND o.status != 'CANCELED')")
   Iterable<Order> getAllActiveOrders(UUID customerId);
 }

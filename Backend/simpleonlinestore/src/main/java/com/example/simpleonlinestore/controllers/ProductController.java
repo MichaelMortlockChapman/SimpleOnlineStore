@@ -2,6 +2,7 @@ package com.example.simpleonlinestore.controllers;
 
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.simpleonlinestore.database.order.OrderRepository;
 import com.example.simpleonlinestore.database.product.Product;
 import com.example.simpleonlinestore.database.product.ProductRepository;
 import com.example.simpleonlinestore.security.UserRole;
@@ -9,6 +10,7 @@ import com.example.simpleonlinestore.security.UserRole;
 import java.util.Iterator;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
@@ -23,11 +25,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 @RestController
 public class ProductController {
 
-  private final ProductRepository productRepository;
+  @Autowired
+  private ProductRepository productRepository;
 
-  public ProductController(ProductRepository productRepository) {
-    this.productRepository = productRepository;
-  }
+  @Autowired
+  private OrderRepository orderRepository;
 
   @GetMapping("/v1/product/get/all")
   public ResponseEntity<String> findAllProducts() {
@@ -59,7 +61,7 @@ public class ProductController {
     if (invalidatingReponse.isPresent()) {
       return invalidatingReponse.get();
     }
-    return ResponseEntity.ok(this.productRepository.findById(productId).get().toJSON());
+    return ResponseEntity.ok(productRepository.findById(productId).get().toJSON());
   }
 
   public record OrderUpdateRequest(
@@ -85,7 +87,7 @@ public class ProductController {
   @Secured({UserRole.ROLE_ADMIN})
   public ResponseEntity<String> addProduct(@RequestBody ProductRequest productRequest) {
     Product product = new Product(productRequest.name(), productRequest.description(), productRequest.units(), productRequest.price());
-    this.productRepository.save(product);
+    productRepository.save(product);
     return new ResponseEntity<String>("{ productId: \"" + product.getId() +"\"}", HttpStatus.CREATED);
   }
 
@@ -96,7 +98,8 @@ public class ProductController {
     if (invalidatingReponse.isPresent()) {
       return invalidatingReponse.get();
     }
-    this.productRepository.deleteById(productId);
+    orderRepository.removeDeletedProduct(productId);
+    productRepository.deleteById(productId);
     return ResponseEntity.ok("Done");
   }
 }

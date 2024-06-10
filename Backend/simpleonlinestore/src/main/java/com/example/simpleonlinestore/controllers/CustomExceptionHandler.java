@@ -24,8 +24,9 @@ public class CustomExceptionHandler {
     if (ex instanceof AuthenticationException) {
       errorDetail = ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(401), ex.getMessage());
       errorDetail.setProperty("error", "Bad credentials");
-    } else if (ex instanceof HttpMessageNotReadableException) {
+    } else if (ex instanceof HttpMessageNotReadableException || ex instanceof IllegalArgumentException || ex instanceof NullPointerException) {
       errorDetail = ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(400), ex.getMessage());
+      errorDetail.setProperty("error", "Bad request");
     } else if (ex instanceof AccessDeniedException) {
       errorDetail = ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(403), ex.getMessage());
       errorDetail.setProperty("error", "Forbidden");

@@ -46,6 +46,11 @@ public class OrderController {
     Integer productId, Integer quantity,
     String address, String city, Integer postalCode, String country
   ) {}
+  public record AdminOrderRequest(
+    String login, Integer productId, Integer quantity,
+    String address, String city, Integer postalCode, String country
+  ) {}
+  public record OrderStatusUpdateRequest(UUID orderId, OrderStatuses.statuses orderStatus) {}
 
   // same func as productController's but can't use static as it uses productRepository, easier to copy than use some work around
   public Optional<ResponseEntity<String>> checkProductExists(Integer productId) {
@@ -60,7 +65,7 @@ public class OrderController {
    * creates an order for user with user's delivery info
    * @param loginCookieValue
    * @param orderRequest record of productId and quantity
-   * @return error msg or "Done"
+   * @return error msg or JSON obj with orderId
    */
   @PostMapping("/v1/order/create/simple")
   @Secured({UserRole.ROLE_USER})
@@ -68,11 +73,12 @@ public class OrderController {
     @CookieValue(CookieGenerator.COOKIE_LOGIN) String loginCookieValue,  
     @RequestBody OrderSimpleRequest orderRequest
   ) {
+    UUID customerId = userRepository.getRoleIdFromLogin(loginCookieValue);
     Optional<ResponseEntity<String>> invalidatingReponse = checkProductExists(orderRequest.productId());
     if (invalidatingReponse.isPresent()) {
       return invalidatingReponse.get();
     }
-    Customer customer = customerRepository.findById(userRepository.getRoleIdFromLogin(loginCookieValue)).get();
+    Customer customer = customerRepository.findById(customerId).get();
     Order order = new Order(
       productRepository.findById(orderRequest.productId()).get(), 
       customer, 
@@ -82,14 +88,14 @@ public class OrderController {
       OrderStatuses.ORDERED
     );
     orderRepository.save(order);
-    return new ResponseEntity<>("Done", HttpStatus.CREATED);
+    return new ResponseEntity<>("{\"orderId\":\"" + order.getId() + "\"}", HttpStatus.CREATED);
   }
 
   /**
    * creates an order for user with specified delivery info 
    * @param loginCookieValue
    * @param orderRequest record of order info
-   * @return error msg or "Done"
+   * @return error msg or JSON obj with orderId
    */
   @PostMapping("/v1/order/create")
   @Secured({UserRole.ROLE_USER})
@@ -97,41 +103,10 @@ public class OrderController {
     @CookieValue(CookieGenerator.COOKIE_LOGIN) String loginCookieValue,  
     @RequestBody OrderRequest orderRequest
   ) {
+    UUID customerId = userRepository.getRoleIdFromLogin(loginCookieValue);
     Optional<ResponseEntity<String>> invalidatingReponse = checkProductExists(orderRequest.productId());
     if (invalidatingReponse.isPresent()) {
       return invalidatingReponse.get();
-    }
-    Customer customer = customerRepository.findById(userRepository.getRoleIdFromLogin(loginCookieValue)).get();
-    Order order = new Order(
-      productRepository.findById(orderRequest.productId()).get(), 
-      customer, 
-      orderRequest.quantity(), 
-      orderRequest.address(), orderRequest.city(), 
-      orderRequest.postalCode(), orderRequest.country(), 
-      OrderStatuses.ORDERED
-    );
-    orderRepository.save(order);
-    return new ResponseEntity<>("Done", HttpStatus.CREATED);
-  }
-
-  /***
-   * creates an order for any user, only usable by admins
-   * @param customerId
-   * @param orderRequest record of order info
-   * @return error msg or "Done"
-   */
-  @PostMapping("/v1/order/admin/create")
-  @Secured({UserRole.ROLE_ADMIN})
-  public ResponseEntity<String> createOrderAsAdmin(
-    @RequestBody UUID customerId,
-    @RequestBody OrderRequest orderRequest
-  ) {
-    Optional<ResponseEntity<String>> invalidatingReponse = checkProductExists(orderRequest.productId());
-    if (invalidatingReponse.isPresent()) {
-      return invalidatingReponse.get();
-    }
-    if (!customerRepository.findById(customerId).isPresent()) {
-      return new ResponseEntity<>("Bad CustomerId", HttpStatus.BAD_REQUEST);
     }
     Customer customer = customerRepository.findById(customerId).get();
     Order order = new Order(
@@ -143,7 +118,32 @@ public class OrderController {
       OrderStatuses.ORDERED
     );
     orderRepository.save(order);
-    return new ResponseEntity<>("Done", HttpStatus.CREATED);
+    return new ResponseEntity<>("{\"orderId\":\"" + order.getId() + "\"}", HttpStatus.CREATED);
+  }
+
+  /***
+   * creates an order for any user, only usable by admins
+   * @param orderRequest record of order info with customer login
+   * @return error msg or JSON obj with orderId
+   */
+  @PostMapping("/v1/order/admin/create")
+  @Secured({UserRole.ROLE_ADMIN})
+  public ResponseEntity<String> createOrderAsAdmin(@RequestBody AdminOrderRequest orderRequest) {
+    UUID customerId = userRepository.getRoleIdFromLogin(orderRequest.login());
+    Optional<ResponseEntity<String>> invalidatingReponse = checkProductExists(orderRequest.productId());
+    if (invalidatingReponse.isPresent()) {
+      return invalidatingReponse.get();
+    }
+    Order order = new Order(
+      productRepository.findById(orderRequest.productId()).get(), 
+      customerRepository.findById(customerId).get(),
+      orderRequest.quantity(), 
+      orderRequest.address(), orderRequest.city(), 
+      orderRequest.postalCode(), orderRequest.country(), 
+      OrderStatuses.ORDERED
+    );
+    orderRepository.save(order);
+    return new ResponseEntity<>("{\"orderId\":\"" + order.getId() + "\"}", HttpStatus.CREATED);
   }
 
   /**
@@ -154,8 +154,8 @@ public class OrderController {
    */
   @PutMapping("/v1/order/admin/update/status")
   @Secured({UserRole.ROLE_ADMIN})
-  public ResponseEntity<String> updateOrderStatus(@RequestBody UUID orderId, @RequestBody OrderStatuses.statuses orderStatus) { 
-    orderRepository.updateOrderStatus(orderId, orderStatus.name());
+  public ResponseEntity<String> updateOrderStatus(@RequestBody OrderStatusUpdateRequest statusUpdateRequest) { 
+    orderRepository.updateOrderStatus(statusUpdateRequest.orderId(), statusUpdateRequest.orderStatus.name());
     return ResponseEntity.ok("Done");
   }
   
@@ -174,59 +174,62 @@ public class OrderController {
     return ordersJSON;
   }
 
-  public record CustomerOrderRequest(
+  public record CustomerUpdateOrderRequest(
     UUID orderId, Integer quantity, String address, 
     String city, Integer postalCode, String country
   ) {}
   /**
    * allows the customer to update their order's quanity or delivery info if the order is not already underway or cancelled
    * @param loginCookieValue user login
-   * @param customerOrderRequest the info needed by the func
+   * @param updateRequest the updated order info
    * @return either "Done" or error msg
    */
   @PutMapping("/v1/order/update")
   @Secured({UserRole.ROLE_USER})
   public ResponseEntity<String> updateOrderAsCustomer(
     @CookieValue(CookieGenerator.COOKIE_LOGIN) String loginCookieValue,
-    CustomerOrderRequest customerOrderRequest
+    @RequestBody CustomerUpdateOrderRequest updateRequest
   ) {
-    Optional<Order> order = orderRepository.findById(customerOrderRequest.orderId());
+    Optional<Order> order = orderRepository.findById(updateRequest.orderId());
     if (!order.isPresent()) {
       return new ResponseEntity<>("Bad OrderId", HttpStatus.BAD_REQUEST);
     } else if (!order.get().getStatus().equals(OrderStatuses.ORDERED)) {
       return new ResponseEntity<>("Order underway or cancelled", HttpStatus.BAD_REQUEST);
     }
     orderRepository.updateOrder(
-      customerOrderRequest.orderId(), userRepository.getRoleIdFromLogin(loginCookieValue), 
-      customerOrderRequest.quantity(), customerOrderRequest.address(), 
-      customerOrderRequest.city(), customerOrderRequest.postalCode(), customerOrderRequest.country()
+      updateRequest.orderId(), userRepository.getRoleIdFromLogin(loginCookieValue), 
+      updateRequest.quantity(), updateRequest.address(), 
+      updateRequest.city(), updateRequest.postalCode(), updateRequest.country()
     );
 
     return ResponseEntity.ok("Done");
   }
 
   public record AdminOrderUpdateRequest(
-    UUID orderId, UUID customerId, Integer quantity, String address, 
+    UUID orderId, String customerLogin, Integer quantity, String address, 
     String city, Integer postalCode, String country
   ) {}
   /**
    * allows admins to update an orders information. Does not update status as route "/v1/order/admin/update/status" exists
-   * @param adminOrderUpdateRequest record of order info 
+   * @param updateRequest the updated order info
    * @return
    */
   @PutMapping("/v1/order/admin/update")
   @Secured({UserRole.ROLE_ADMIN})
   public ResponseEntity<String> updateOrderAsAdmin(
-    AdminOrderUpdateRequest adminOrderUpdateRequest
+    @RequestBody AdminOrderUpdateRequest updateRequest
   ) {
-    Optional<Order> order = orderRepository.findById(adminOrderUpdateRequest.orderId());
+    Optional<Order> order = orderRepository.findById(updateRequest.orderId());
     if (!order.isPresent()) {
       return new ResponseEntity<>("Bad OrderId", HttpStatus.BAD_REQUEST);
+    } else if (!userRepository.existsRoleIdFromLogin(updateRequest.customerLogin())) {
+      return new ResponseEntity<>("Bad customer login", HttpStatus.BAD_REQUEST);
     }
+    UUID customerId = userRepository.getRoleIdFromLogin(updateRequest.customerLogin());
     orderRepository.updateOrder(
-      adminOrderUpdateRequest.orderId(), userRepository.getRoleIdFromLogin(adminOrderUpdateRequest.customerId().toString()), 
-      adminOrderUpdateRequest.quantity(), adminOrderUpdateRequest.address(), 
-      adminOrderUpdateRequest.city(), adminOrderUpdateRequest.postalCode(), adminOrderUpdateRequest.country()
+      updateRequest.orderId(), customerId, 
+      updateRequest.quantity(), updateRequest.address(), 
+      updateRequest.city(), updateRequest.postalCode(), updateRequest.country()
     );
 
     return ResponseEntity.ok("Done");
@@ -263,8 +266,8 @@ public class OrderController {
    */
   @GetMapping("/v1/order/get/{orderId}")
   @Secured({UserRole.ROLE_USER})
-  public ResponseEntity<String> getOrder(@PathVariable UUID orderId, @CookieValue(CookieGenerator.COOKIE_LOGIN) String loginCookieValue) {
-    Optional<Order> order = orderRepository.findById(orderId);
+  public ResponseEntity<String> getOrder(@PathVariable String orderId, @CookieValue(CookieGenerator.COOKIE_LOGIN) String loginCookieValue) {
+    Optional<Order> order = orderRepository.findById(UUID.fromString(orderId));
     if (!order.isPresent()) {
       return new ResponseEntity<>("Bad OrderId", HttpStatus.BAD_REQUEST);
     }

@@ -18,11 +18,8 @@ public class TokenAuthenticationProvider implements AuthenticationProvider {
   @Autowired
   private JwtService jwtService;
 
-  private final UserRepository userRepository;
-
-  public TokenAuthenticationProvider(UserRepository userRepository) {
-    this.userRepository = userRepository;
-  }
+  @Autowired
+  private UserRepository userRepository;
 
   @Override
   public Authentication authenticate(Authentication authentication) throws AuthenticationException {

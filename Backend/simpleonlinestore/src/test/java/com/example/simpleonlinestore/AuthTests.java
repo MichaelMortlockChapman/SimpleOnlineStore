@@ -66,6 +66,11 @@ public class AuthTests {
       USER_NAME, USER_ADDRESS, USER_CITY, USER_POSTALCODE, USER_COUNTRY);
   }
 
+  public static String createSignupJSONWithEmail(String email) {
+    return createSignupJSONAll(email, "password", 
+      USER_NAME, USER_ADDRESS, USER_CITY, USER_POSTALCODE, USER_COUNTRY);
+  }
+
   @Test 
   void SignupAndDelete(@Autowired WebTestClient webClient) {
     String set_cookie = webClient

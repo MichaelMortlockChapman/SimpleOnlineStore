@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.example.simpleonlinestore.database.customer.CustomerRepository;
+import com.example.simpleonlinestore.database.order.OrderRepository;
 import com.example.simpleonlinestore.database.sessions.SessionRepository;
 import com.example.simpleonlinestore.security.UserRole;
 
@@ -25,6 +26,9 @@ public class UserRepository {
 
   @Autowired
   private CustomerRepository customerRepository;
+
+  @Autowired
+  private OrderRepository orderRepository;
 
   private User findByLoginUser(String login) {
     for (User user : userRepo.findAll()) {
@@ -73,14 +77,31 @@ public class UserRepository {
     }
   }
 
+  // expects login to have roleId
   public UUID getRoleIdFromLogin(String login) {
+    if (existsRoleIdFromLogin(login) == false) {
+      throw new IllegalArgumentException("Login has no associated roldId");
+    }
     return findByLoginUser(login).getRoleId();
+  }
+
+  public Boolean existsRoleIdFromLogin(String login) {
+    User user = findByLoginUser(login);
+    if (user == null) {
+      return false;
+    }
+    return user.getRoleId() != null;
   }
 
   public void updateAssociationsFromDelete(User user) throws ResponseStatusException {
     sessionRepository.deleteAllUserSessions(user.getLogin());
     
     CrudRepository<?, UUID> relatedRepo = getRelatedRepo(user.getRole());
+    if (user.getRole().equals(UserRole.ROLE_USER)) {
+      UUID customerId = user.getRoleId();
+      orderRepository.removeDeletedCustomer(customerId);
+      customerRepository.deleteById(customerId);
+    }
     if (relatedRepo != null) {
       relatedRepo.deleteById(user.getRoleId());
     }
