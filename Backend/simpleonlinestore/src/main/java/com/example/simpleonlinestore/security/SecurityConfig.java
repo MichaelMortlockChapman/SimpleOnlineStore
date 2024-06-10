@@ -105,10 +105,8 @@ public class SecurityConfig {
   SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     return http
         .authorizeHttpRequests((requests) -> requests.requestMatchers(new AntPathRequestMatcher("/v1/auth/**")).permitAll().anyRequest().authenticated())
-        // .cors(cors -> cors.disable())
         .csrf(csrf -> csrf.disable())
         .addFilterBefore(cookieAuthenticationFilter,  UsernamePasswordAuthenticationFilter.class)
-        // .addFilterBefore(tokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
         .addFilterBefore(exceptionHandlerFilter, CookieAuthenticationFilter.class)
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .build();

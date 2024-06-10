@@ -159,6 +159,33 @@ public class AuthTests {
   }
 
   @Test
+  void badAuthLoginThrows403(@Autowired WebTestClient webClient) {
+    String username = "" + Instant.now().toEpochMilli();
+
+    // signup
+    String set_cookie = webClient
+      .post().uri("/v1/auth/signup/customer")
+      .contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(createSignupJSON(""+Instant.now().toEpochMilli())) 
+      .exchange()
+      .returnResult(HttpHeaders.class)
+      .getResponseHeaders().getFirst(HttpHeaders.SET_COOKIE);
+
+    webClient
+      .post().uri("/v1/auth/signin")
+      .header("Authorization",  getAuthMsgUsername(username + "@test.org", "hey"))
+      .exchange()
+      .expectStatus().isEqualTo(401);
+
+    // clean up (delete user)
+    webClient
+      .delete().uri("/v1/auth/delete")
+      .header("Cookie", set_cookie)
+      .exchange()
+      .expectStatus().isOk();
+  }
+
+  @Test
   void cannotUseSameLogin(@Autowired WebTestClient webClient) {
     String username = "" + Instant.now().toEpochMilli();
 
