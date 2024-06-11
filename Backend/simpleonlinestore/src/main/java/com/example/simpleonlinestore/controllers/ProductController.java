@@ -31,6 +31,10 @@ public class ProductController {
   @Autowired
   private OrderRepository orderRepository;
 
+  /**
+   * Gets JSON list obj of all products
+   * @return JSON list obj string
+   */
   @GetMapping("/v1/product/get/all")
   public ResponseEntity<String> findAllProducts() {
     String productListJSON = "[";
@@ -47,6 +51,11 @@ public class ProductController {
     return ResponseEntity.ok(productListJSON);
   }
 
+  /**
+   * Helper func to validate productId
+   * @param productId
+   * @return Optional ResponseEntity<String>, empty if valid otherwise holds problem details
+   */
   public Optional<ResponseEntity<String>> checkProductExists(Integer productId) {
     Optional<ResponseEntity<String>> result = Optional.empty();
     if (!productRepository.findById(productId).isPresent()) {
@@ -55,6 +64,11 @@ public class ProductController {
     return result;
   }
 
+  /**
+   * Gets JSON obj of given productId
+   * @param productId
+   * @return JSON obj of product or problem
+   */
   @GetMapping("/v1/product/get/{productId}")
   public ResponseEntity<String> findProduct(@PathVariable int productId) {
     Optional<ResponseEntity<String>> invalidatingReponse = checkProductExists(productId);
@@ -69,7 +83,11 @@ public class ProductController {
     String description, Integer units, 
     Long price
   ) {};
-
+  /**
+   * Updates a product's details
+   * @param product updated details record of product
+   * @return Done msg
+   */
   @PutMapping("/v1/product/update")
   @Secured({UserRole.ROLE_ADMIN})
   public ResponseEntity<String> updateProduct(@RequestBody OrderUpdateRequest product) {
@@ -82,7 +100,11 @@ public class ProductController {
   }
   
   public record ProductRequest(String name, String description, Integer units, Long price) {}
-
+  /**
+   * creates and saves a new product
+   * @param productRequest details of product to create
+   * @return productId of created product
+   */
   @PostMapping("/v1/product/add")
   @Secured({UserRole.ROLE_ADMIN})
   public ResponseEntity<String> addProduct(@RequestBody ProductRequest productRequest) {
@@ -91,6 +113,11 @@ public class ProductController {
     return new ResponseEntity<String>("{ productId: \"" + product.getId() +"\"}", HttpStatus.CREATED);
   }
 
+  /**
+   * Deletes a product from DB and nulls orders which refrenced it
+   * @param productId
+   * @return Done or error msg
+   */
   @DeleteMapping("/v1/product/delete")
   @Secured({UserRole.ROLE_ADMIN})
   public ResponseEntity<String> deleteProduct(@RequestBody Integer productId) {

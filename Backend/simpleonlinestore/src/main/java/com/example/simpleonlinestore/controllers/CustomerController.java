@@ -54,7 +54,13 @@ public class CustomerController {
     return ResponseEntity.ok(customer.get().toJSON());
   }
 
-
+  /**
+   * route to allow customer to update their details
+   * @param customerDetails updated customer info
+   * @param loginCookieValue login of user/customer
+   * @return done msg response
+   * @throws ResponseStatusException
+   */
   @PutMapping("/v1/customer/update")
   @Secured({UserRole.ROLE_USER})
   public ResponseEntity<String> updateCustomerDetails(

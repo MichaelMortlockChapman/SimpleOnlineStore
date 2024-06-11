@@ -10,21 +10,27 @@
 	</parent>
 	<groupId>com.example</groupId>
 	<artifactId>simpleonlinestore</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<name>simpleonlinestore</name>
 	<description>Demo project for Spring Boot</description>
 	<properties>
 		<java.version>22</java.version>
 	</properties>
 
-	<!-- <http>
-		<intercept-url pattern="/**" access="isAuthenticated()"/>
-    <http-basic/>
-	</http>
-	<authentication-manager>
-		<authentication-provider
-			ref="customAuthenticationProvider" />
-	</authentication-manager> -->
+	<profiles>
+		<profile>
+        <id>postgres</id>
+        <activation>
+            <activeByDefault>true</activeByDefault>
+        </activation>
+        <properties>
+						<!-- Need to setup profile garb so env vars can be used in maven yippee -->
+            <dbUsername>${DB_USERNAME}</dbUsername>
+						<dbPassword>${DB_PASSWORD}</dbPassword>
+						<backendSecret>${JWT_SECRET}</backendSecret>
+        </properties>
+		</profile>
+	</profiles>
 
 	<dependencies>
 
@@ -101,6 +107,12 @@
 	</dependencies>
 
 	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
