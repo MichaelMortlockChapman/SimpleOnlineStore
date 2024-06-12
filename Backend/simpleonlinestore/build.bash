@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ENV_FILE="../.././.env"
+ENV_FILE=$1
 
 output_string=""
 while IFS='=' read -r key value; do
@@ -12,5 +12,5 @@ while IFS='=' read -r key value; do
 done < "$ENV_FILE"
 
 set -x
-mvn install $output_string -Ppostgres
+mvn install $output_string -DskipTests=true
 set +x
