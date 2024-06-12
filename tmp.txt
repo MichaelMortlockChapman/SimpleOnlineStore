@@ -1,4 +1,4 @@
-curl -i --user password@password.org:password -X POST http://localhost:8081/v1/auth/signin
+curl -i --user password@password.org:password -X POST https://simpleonlinestore.onrender.com:8081/v1/auth/signin
 
 curl http://localhost:8081/v1/hello/user -H "Cookie: auth_cookie=1720756819587:bb0e7370-94b9-438e-b8bb-a4995e44c816; Max-Age=2629746; Expires=Fri, 12 Jul 2024 14:29:26 GMT; Secure; HttpOnly; login=1@1.com"
 

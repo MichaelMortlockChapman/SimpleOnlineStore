@@ -59,12 +59,12 @@ public class ExceptionHandlingTests {
   }
 
   @Test
-  void badRouteIs403ForNonUser(@Autowired WebTestClient webClient) {
+  void badRouteIs401ForNonUser(@Autowired WebTestClient webClient) {
     webClient
       .get().uri("/v1/badRoute")
       .exchange()
       .expectStatus()
-      .isEqualTo(403);
+      .isEqualTo(401);
   }
 
   @Test

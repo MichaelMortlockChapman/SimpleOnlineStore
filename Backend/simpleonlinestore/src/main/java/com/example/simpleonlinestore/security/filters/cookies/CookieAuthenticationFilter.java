@@ -32,6 +32,9 @@ public class CookieAuthenticationFilter extends OncePerRequestFilter {
 
     Cookie secretCookie = null;
     Cookie loginCookie = null;
+    if (request.getCookies() == null) {
+      throw new BadCredentialsException("Missing Cookie");
+    }
     for (Cookie cookie : request.getCookies()) {
       if (cookie.getName().equals(CookieGenerator.COOKE_NAME)) {
         secretCookie = cookie;
