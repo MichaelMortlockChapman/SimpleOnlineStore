@@ -10,14 +10,14 @@ CREATE TABLE customers (
 CREATE TABLE products (
   product_id UUID PRIMARY KEY,
   product_description VARCHAR(255) NOT NULL,
-  product_name VARCHAR(255) UNIQUE NOT NULL,
+  product_name VARCHAR(255) NOT NULL,
   price bigint NOT NULL CHECK (price > 0::bigint),
   units INT NOT NULL CHECK (units > 0)
 );
 
 CREATE TABLE users (
   user_id UUID PRIMARY KEY,
-  username VARCHAR(255) NOT NULL,
+  username VARCHAR(255) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
   role VARCHAR(255) NOT NULL,
   role_id UUID
