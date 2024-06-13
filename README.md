@@ -10,7 +10,7 @@ The web service has been deployed through render.com at the url https://simpleon
 
 #### Example command:
 ```
-curl -i -X POST https://simpleonlinestore.onrender.com/v1/auth/signup/customer -H "Content-Type: application/json" --data '{"login":"email@email.com","password":"password"}'
+curl -XPOST -H "Content-type: application/json" -d '{ "login": "hello@world.com", "password": "password", "name": "Jim", "address": "1 One Street", "city": "Big Smoke", "postalCode": "1999", "country": "USA" }' 'https://simpleonlinestore.onrender.com/v1/auth/signup/customer'
 ```
 If the server is unresponsive, it is likely the database is down. The service uses the free render tier, so it only has a month of uptime. Please send me a message if this happens and I will bring it back online.
 

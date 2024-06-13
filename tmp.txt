@@ -6,8 +6,7 @@ curl -i -X POST http://localhost:8081/v1/auth/signout -H "Cookie: auth_cookie=17
 
 curl -i -X DELETE http://localhost:8081/v1/auth/delete -H "Cookie: auth_cookie=1719732625791:7c092fc2-404e-458c-9ebb-854f84ac601a; Max-Age=2629746; Expires=Sun, 30 Jun 2024 17:59:31 GMT; Secure; HttpOnly; login=1717140419314@test.org"
 
-
-curl -i -X POST https://simpleonlinestore.onrender.com/v1/auth/signup/customer -H "Content-Type: application/json" --data '{"login":"1@1.com","password":"password"}'
+curl -XPOST -H "Content-type: application/json" -d '{ "login": "hello@world.com", "password": "password", "name": "Jim", "address": "1 One Street", "city": "Big Smoke", "postalCode": "1999", "country": "USA" }' 'https://simpleonlinestore.onrender.com/v1/auth/signup/customer'
 
 curl -i --user 1717140359494@test.org:password -X POST http://localhost:8081/v1/auth/signin
 
