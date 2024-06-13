@@ -56,7 +56,7 @@ Script names self explanatory, both need to run at `Backend\simpleonlinestore`
 #### Some Assumptions:
 -	Orders should never be deleted for logging/audit requirements
 -	Emails/logins are unique (standard)
--	A user would rather sign in and use a cookie for session than use their credentials for every API call (standard)
+-	A user would rather sign in and use a cookie for their session than use their credentials for every API call (standard)
 
 
 ## Routes
