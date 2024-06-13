@@ -103,7 +103,7 @@ Script names self explanatory, both need to run at `Backend\simpleonlinestore`
  - ROLE_ADMIN – admin user
 <br><br>
 
-Following table converted from [Route Info.docx](<Route Info.docx>)
+Following table converted from [Route Info.docx](<Route Info.pdf>)
 <table cellspacing=0 cellpadding=0>
  <tr>
   <td width=212 style='width:158.65pt;border:solid windowtext 1.0pt;padding:
