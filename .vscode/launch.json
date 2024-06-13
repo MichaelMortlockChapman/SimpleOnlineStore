@@ -8,7 +8,7 @@
       "mainClass": "com.example.simpleonlinestore.SimpleonlinestoreApplication",
       "projectName": "simpleonlinestore",
       "args": "",
-      "envFile": "${workspaceFolder}/prod.env"
+      "envFile": "${workspaceFolder}/.env"
     },
   ]
 }
