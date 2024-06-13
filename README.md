@@ -12,7 +12,7 @@ The web service has been deployed through render.com at the url https://simpleon
 ```
 curl -i -X POST https://simpleonlinestore.onrender.com/v1/auth/signup/customer -H "Content-Type: application/json" --data '{"login":"email@email.com","password":"password"}'
 ```
-If the server is unresponsive it is likely the database is down, as the service is hostly freely it only has a uptime of a month. Please send me a message if this happens and I will get it back online.
+If the server is unresponsive, it is likely the database is down. The service uses the free render tier, so it only has a month of uptime. Please send me a message if this happens and I will bring it back online.
 
 ## Code Dev Requirements
 - Java Version 22
